@@ -1,6 +1,7 @@
 export type Category = "instruments" | "equipment" | "musicians" | "labels";
 
-export interface StageItem {
+// Base interface with common properties for all stage items
+export interface BaseStageItem {
   id: string;
   name: string;
   category: Category;
@@ -12,13 +13,26 @@ export interface StageItem {
   width?: number;
   height?: number;
   isFlipped?: boolean;
-  textContent?: string;
+}
+
+// Specialized interface for labels
+export interface LabelItem extends BaseStageItem {
+  category: "labels";
+  textContent: string;
   textFormatting?: {
     isBold?: boolean;
     isItalic?: boolean;
     fontSize?: number;
     textColor?: string;
   };
+}
+
+// Union type that represents all possible stage items
+export type StageItem = BaseStageItem | LabelItem;
+
+// Type guard to check if an item is a LabelItem
+export function isLabelItem(item: StageItem): item is LabelItem {
+  return item.category === "labels";
 }
 
 export interface InputRow {

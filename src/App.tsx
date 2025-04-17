@@ -1,4 +1,5 @@
 import { useDocument } from "./context/DocumentContext";
+import { StageItem, LabelItem, isLabelItem } from "./types/document";
 import "./App.css";
 
 function App() {
@@ -21,7 +22,7 @@ function App() {
     });
   };
 
-  // Add a simple stage item
+  // Add a regular stage item
   const addItem = () => {
     const id = crypto.randomUUID();
     dispatch({
@@ -36,9 +37,49 @@ function App() {
     });
   };
 
+  // Add a label item
+  const addLabel = () => {
+    const id = crypto.randomUUID();
+    const labelItem: LabelItem = {
+      id,
+      name: `Label ${document.items.length + 1}`,
+      category: "labels",
+      icon: "text-icon",
+      position: { x: 200, y: 150 },
+      textContent: "Stage Front",
+      textFormatting: {
+        isBold: true,
+        fontSize: 16,
+        textColor: "#000000",
+      },
+    };
+    dispatch({ type: "ADD_ITEM", item: labelItem });
+  };
+
   // Create a new document
   const newDocument = () => {
     dispatch({ type: "NEW_DOCUMENT" });
+  };
+
+  // Render item details with special handling for label items
+  const renderItemDetails = (item: StageItem) => {
+    if (isLabelItem(item)) {
+      return (
+        <span className="item-details label-item">
+          <strong>Label:</strong> {item.textContent}
+          {item.textFormatting?.isBold && (
+            <span className="label-format"> (Bold)</span>
+          )}
+        </span>
+      );
+    } else {
+      return (
+        <span className="item-details">
+          <strong>{item.category}:</strong> {item.name} at ({item.position.x},{" "}
+          {item.position.y})
+        </span>
+      );
+    }
   };
 
   // Display document as JSON for debugging
@@ -93,11 +134,14 @@ function App() {
 
         <div className="form-group">
           <h3>Stage Items</h3>
-          <button onClick={addItem}>Add Test Item</button>
+          <div className="button-group">
+            <button onClick={addItem}>Add Regular Item</button>
+            <button onClick={addLabel}>Add Label</button>
+          </div>
           <ul>
             {document.items.map((item) => (
               <li key={item.id}>
-                {item.name} ({item.position.x}, {item.position.y})
+                {renderItemDetails(item)}
                 <button
                   onClick={() => dispatch({ type: "REMOVE_ITEM", id: item.id })}
                 >

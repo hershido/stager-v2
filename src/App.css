@@ -191,3 +191,40 @@ pre {
   line-height: 1.6;
   color: #333;
 }
+
+.button-group {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.button-group button {
+  flex: 1;
+}
+
+.button-group button:nth-child(1) {
+  background-color: #3182ce;
+}
+
+.button-group button:nth-child(2) {
+  background-color: #805ad5;
+}
+
+.item-details {
+  flex: 1;
+  font-size: 14px;
+  padding: 5px 8px;
+  border-radius: 4px;
+  background-color: #f3f4f6;
+  border: 1px solid #e5e7eb;
+}
+
+.label-item {
+  background-color: #ebf4ff;
+  border-color: #c3dafe;
+}
+
+.label-format {
+  font-style: italic;
+  color: #4a5568;
+}
