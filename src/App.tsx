@@ -1,39 +1,30 @@
-import { useDocument } from "./context/DocumentContext";
 import { StageItem, LabelItem, isLabelItem } from "./types/document";
+import { useDocumentService } from "./services/documentService";
 import "./App.css";
 
 function App() {
-  const { document, dispatch } = useDocument();
+  const { documentService, document } = useDocumentService();
 
   // Update document name
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    dispatch({
-      type: "UPDATE_DOCUMENT",
-      updates: { name: e.target.value },
-    });
+    documentService.updateDocument({ name: e.target.value });
   };
 
   // Update stage dimensions
   const handleStageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    dispatch({
-      type: "UPDATE_STAGE",
-      updates: { [name]: parseInt(value, 10) },
-    });
+    documentService.updateStage({ [name]: parseInt(value, 10) });
   };
 
   // Add a regular stage item
   const addItem = () => {
     const id = crypto.randomUUID();
-    dispatch({
-      type: "ADD_ITEM",
-      item: {
-        id,
-        name: `Item ${document.items.length + 1}`,
-        category: "instruments",
-        icon: "default-icon",
-        position: { x: 100, y: 100 },
-      },
+    documentService.addItem({
+      id,
+      name: `Item ${document.items.length + 1}`,
+      category: "instruments",
+      icon: "default-icon",
+      position: { x: 100, y: 100 },
     });
   };
 
@@ -53,12 +44,12 @@ function App() {
         textColor: "#000000",
       },
     };
-    dispatch({ type: "ADD_ITEM", item: labelItem });
+    documentService.addItem(labelItem);
   };
 
   // Create a new document
   const newDocument = () => {
-    dispatch({ type: "NEW_DOCUMENT" });
+    documentService.createNew();
   };
 
   // Render item details with special handling for label items
@@ -142,9 +133,7 @@ function App() {
             {document.items.map((item) => (
               <li key={item.id}>
                 {renderItemDetails(item)}
-                <button
-                  onClick={() => dispatch({ type: "REMOVE_ITEM", id: item.id })}
-                >
+                <button onClick={() => documentService.removeItem(item.id)}>
                   Remove
                 </button>
               </li>
