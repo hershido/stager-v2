@@ -72,15 +72,34 @@
   right: 0;
   top: 0;
   bottom: 0;
-  width: 0;
+  min-width: 180px;
+  max-width: 500px;
   overflow: hidden;
-  transition: width 0.3s ease;
   border-left: 1px solid var(--border-color);
   background-color: var(--background-color-primary);
   box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
   z-index: 5; // Ensure side panel is above main content
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
 
   &.open {
-    width: var(--side-panel-width);
+    transform: translateX(0);
+  }
+}
+
+.sidePanelResizeHandle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  cursor: col-resize;
+  background-color: transparent;
+  transition: background-color 0.3s ease;
+  z-index: 6; // Ensure resize handle is above side panel
+
+  &:hover,
+  &.dragging {
+    background-color: var(--border-color);
   }
 }
