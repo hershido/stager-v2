@@ -74,9 +74,8 @@ export function AppLayout({
           className={styles.sidebarContainer}
           style={{ width: `${sidebarWidth}px` }}
         >
-          {sidebar}
+          <div className={styles.sidebarContent}>{sidebar}</div>
           <ResizeHandle
-            position="right"
             isDragging={resizing === "sidebar"}
             onResizeStart={handleSidebarMouseDown}
             title="Resize sidebar"
@@ -90,12 +89,11 @@ export function AppLayout({
           style={{ width: `${sidePanelWidth}px` }}
         >
           <ResizeHandle
-            position="left"
             isDragging={resizing === "sidePanel"}
             onResizeStart={handleSidePanelMouseDown}
             title="Resize panel"
           />
-          {sidePanel}
+          <div className={styles.sidePanelContent}>{sidePanel}</div>
         </div>
       </div>
 

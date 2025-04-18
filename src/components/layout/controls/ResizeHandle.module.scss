@@ -1,9 +1,6 @@
 @import "../../../styles/variables.scss";
 
 .resizeHandle {
-  position: absolute;
-  top: 0;
-  bottom: 0;
   width: 8px;
   cursor: col-resize;
   background-color: transparent;
@@ -22,7 +19,6 @@
     opacity: 0.3;
     border-radius: 2px;
 
-    // Create three vertical stripes with borders
     background-image: linear-gradient(
       to right,
       transparent 0px,
@@ -46,10 +42,4 @@
   }
 }
 
-.right {
-  right: 0;
-}
-
-.left {
-  left: 0;
-}
+// No longer need position-specific classes since grid handles positioning

@@ -27,22 +27,27 @@
 }
 
 .sidebarContainer {
-  position: absolute; // Changed from grid-column to absolute positioning
+  position: absolute;
   left: 0;
   top: 0;
   bottom: 0;
   width: var(--sidebar-width);
   min-width: 180px;
   max-width: 500px;
-  overflow-y: auto;
   border-right: 1px solid var(--border-color);
   background-color: var(--background-color-primary);
-  z-index: 5; // Ensure sidebar is above main content
+  z-index: 5;
+  display: grid;
+  grid-template-columns: 1fr auto;
+}
+
+.sidebarContent {
+  overflow-y: auto;
 }
 
 .mainContainer {
-  position: absolute; // Changed from grid-column to absolute positioning
-  left: var(--sidebar-width); // Position after the default sidebar width
+  position: absolute;
+  left: var(--sidebar-width);
   top: 0;
   right: 0;
   bottom: 0;
@@ -51,7 +56,7 @@
 }
 
 .sidePanelContainer {
-  position: absolute; // Changed from grid-column to absolute positioning
+  position: absolute;
   right: 0;
   top: 0;
   bottom: 0;
@@ -61,11 +66,17 @@
   border-left: 1px solid var(--border-color);
   background-color: var(--background-color-primary);
   box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
-  z-index: 5; // Ensure side panel is above main content
+  z-index: 5;
   transform: translateX(100%);
   transition: transform 0.3s ease;
+  display: grid;
+  grid-template-columns: auto 1fr;
 
   &.open {
     transform: translateX(0);
   }
+}
+
+.sidePanelContent {
+  overflow-y: auto;
 }
