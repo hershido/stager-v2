@@ -1,0 +1,55 @@
+@import "../../styles/variables.scss";
+
+.appLayout {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  background-color: var(--background-color-secondary);
+  color: var(--text-color);
+}
+
+.headerContainer {
+  grid-row: 1;
+  width: 100%;
+  z-index: 10; // Ensure header is above other content
+  background-color: var(--background-color-primary);
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.workspaceContainer {
+  grid-row: 2;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  overflow: hidden;
+}
+
+.sidebarContainer {
+  grid-column: 1;
+  width: var(--sidebar-width);
+  overflow-y: auto;
+  border-right: 1px solid var(--border-color);
+  background-color: var(--background-color-primary);
+}
+
+.mainContainer {
+  grid-column: 2;
+  overflow: auto;
+  background-color: var(--background-color-secondary);
+}
+
+.sidePanelContainer {
+  grid-column: 3;
+  width: 0;
+  overflow: hidden;
+  transition: width 0.3s ease;
+  border-left: 1px solid var(--border-color);
+  background-color: var(--background-color-primary);
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
+
+  &.open {
+    width: var(--side-panel-width);
+  }
+}
