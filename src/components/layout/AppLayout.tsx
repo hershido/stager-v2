@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import clsx from "clsx";
 import styles from "./AppLayout.module.scss";
 
 interface AppLayoutProps {
@@ -23,9 +24,9 @@ export function AppLayout({
         <div className={styles.sidebarContainer}>{sidebar}</div>
         <div className={styles.mainContainer}>{main}</div>
         <div
-          className={`${styles.sidePanelContainer} ${
-            isPanelOpen ? styles.open : ""
-          }`}
+          className={clsx(styles.sidePanelContainer, {
+            [styles.open]: isPanelOpen,
+          })}
         >
           {sidePanel}
         </div>
