@@ -21,33 +21,64 @@
 
 .workspaceContainer {
   grid-row: 2;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
+  position: relative; // Changed from grid to relative positioning
   overflow: hidden;
+  height: 100%;
 }
 
 .sidebarContainer {
-  grid-column: 1;
+  position: absolute; // Changed from grid-column to absolute positioning
+  left: 0;
+  top: 0;
+  bottom: 0;
   width: var(--sidebar-width);
+  min-width: 180px;
+  max-width: 500px;
   overflow-y: auto;
   border-right: 1px solid var(--border-color);
   background-color: var(--background-color-primary);
+  z-index: 5; // Ensure sidebar is above main content
+}
+
+.resizeHandle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  cursor: col-resize;
+  background-color: transparent;
+  transition: background-color 0.3s ease;
+  z-index: 6; // Ensure resize handle is above sidebar
+
+  &:hover,
+  &.dragging {
+    background-color: var(--border-color);
+  }
 }
 
 .mainContainer {
-  grid-column: 2;
+  position: absolute; // Changed from grid-column to absolute positioning
+  left: var(--sidebar-width); // Position after the default sidebar width
+  top: 0;
+  right: 0;
+  bottom: 0;
   overflow: auto;
   background-color: var(--background-color-secondary);
 }
 
 .sidePanelContainer {
-  grid-column: 3;
+  position: absolute; // Changed from grid-column to absolute positioning
+  right: 0;
+  top: 0;
+  bottom: 0;
   width: 0;
   overflow: hidden;
   transition: width 0.3s ease;
   border-left: 1px solid var(--border-color);
   background-color: var(--background-color-primary);
   box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
+  z-index: 5; // Ensure side panel is above main content
 
   &.open {
     width: var(--side-panel-width);
