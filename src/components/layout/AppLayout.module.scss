@@ -40,23 +40,6 @@
   z-index: 5; // Ensure sidebar is above main content
 }
 
-.resizeHandle {
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 5px;
-  cursor: col-resize;
-  background-color: transparent;
-  transition: background-color 0.3s ease;
-  z-index: 6; // Ensure resize handle is above sidebar
-
-  &:hover,
-  &.dragging {
-    background-color: var(--border-color);
-  }
-}
-
 .mainContainer {
   position: absolute; // Changed from grid-column to absolute positioning
   left: var(--sidebar-width); // Position after the default sidebar width
@@ -84,22 +67,5 @@
 
   &.open {
     transform: translateX(0);
-  }
-}
-
-.sidePanelResizeHandle {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 5px;
-  cursor: col-resize;
-  background-color: transparent;
-  transition: background-color 0.3s ease;
-  z-index: 6; // Ensure resize handle is above side panel
-
-  &:hover,
-  &.dragging {
-    background-color: var(--border-color);
   }
 }

@@ -1,0 +1,55 @@
+@import "../../../styles/variables.scss";
+
+.resizeHandle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: col-resize;
+  background-color: transparent;
+  transition: background-color 0.3s ease;
+  z-index: 6;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  &::before {
+    content: "";
+    display: block;
+    height: 40px;
+    width: 4px;
+    background-color: var(--text-color);
+    opacity: 0.3;
+    border-radius: 2px;
+
+    // Create three vertical stripes with borders
+    background-image: linear-gradient(
+      to right,
+      transparent 0px,
+      transparent 1px,
+      var(--text-color) 1px,
+      var(--text-color) 2px,
+      transparent 2px,
+      transparent 3px,
+      var(--text-color) 3px,
+      var(--text-color) 4px
+    );
+  }
+
+  &:hover,
+  &.dragging {
+    background-color: var(--border-color);
+
+    &::before {
+      opacity: 0.7;
+    }
+  }
+}
+
+.right {
+  right: 0;
+}
+
+.left {
+  left: 0;
+}

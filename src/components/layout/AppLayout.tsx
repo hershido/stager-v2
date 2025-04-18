@@ -1,6 +1,7 @@
 import { ReactNode, useState, useCallback } from "react";
 import clsx from "clsx";
 import styles from "./AppLayout.module.scss";
+import { ResizeHandle } from "./controls/ResizeHandle";
 
 interface AppLayoutProps {
   header: ReactNode;
@@ -74,11 +75,11 @@ export function AppLayout({
           style={{ width: `${sidebarWidth}px` }}
         >
           {sidebar}
-          <div
-            className={clsx(styles.resizeHandle, {
-              [styles.dragging]: resizing === "sidebar",
-            })}
-            onMouseDown={handleSidebarMouseDown}
+          <ResizeHandle
+            position="right"
+            isDragging={resizing === "sidebar"}
+            onResizeStart={handleSidebarMouseDown}
+            title="Resize sidebar"
           />
         </div>
         <div className={styles.mainContainer}>{main}</div>
@@ -88,11 +89,11 @@ export function AppLayout({
           })}
           style={{ width: `${sidePanelWidth}px` }}
         >
-          <div
-            className={clsx(styles.sidePanelResizeHandle, {
-              [styles.dragging]: resizing === "sidePanel",
-            })}
-            onMouseDown={handleSidePanelMouseDown}
+          <ResizeHandle
+            position="left"
+            isDragging={resizing === "sidePanel"}
+            onResizeStart={handleSidePanelMouseDown}
+            title="Resize panel"
           />
           {sidePanel}
         </div>
