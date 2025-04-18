@@ -2,13 +2,13 @@ import { ReactNode, useState, useCallback } from "react";
 import clsx from "clsx";
 import styles from "./AppLayout.module.scss";
 import { ResizeHandle } from "./controls/ResizeHandle";
+import { PanelToggle } from "./controls/PanelToggle";
 
 interface AppLayoutProps {
   header: ReactNode;
   sidebar: ReactNode;
   main: ReactNode;
   sidePanel: ReactNode;
-  isPanelOpen: boolean;
 }
 
 export function AppLayout({
@@ -16,8 +16,10 @@ export function AppLayout({
   sidebar,
   main,
   sidePanel,
-  isPanelOpen,
 }: AppLayoutProps) {
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
   const [sidebarWidth, setSidebarWidth] = useState(300);
   const [sidePanelWidth, setSidePanelWidth] = useState(320);
 
@@ -66,6 +68,17 @@ export function AppLayout({
     setResizing(null);
   }, []);
 
+  const togglePanel = useCallback(() => {
+    // Set transitioning state to help manage hover effects
+    setIsTransitioning(true);
+    setIsPanelOpen((prev) => !prev);
+
+    // Clear transitioning state after animation completes
+    setTimeout(() => {
+      setIsTransitioning(false);
+    }, 350); // slightly longer than the transition duration
+  }, []);
+
   return (
     <div className={styles.appLayout}>
       <div className={styles.headerContainer}>{header}</div>
@@ -85,6 +98,7 @@ export function AppLayout({
         <div
           className={clsx(styles.sidePanelContainer, {
             [styles.open]: isPanelOpen,
+            [styles.transitioning]: isTransitioning,
           })}
           style={{ width: `${sidePanelWidth}px` }}
         >
@@ -92,6 +106,10 @@ export function AppLayout({
             isDragging={resizing === "sidePanel"}
             onResizeStart={handleSidePanelMouseDown}
             title="Resize panel"
+          />
+          <PanelToggle
+            onToggle={togglePanel}
+            title={isPanelOpen ? "Close panel" : "Open panel"}
           />
           <div className={styles.sidePanelContent}>{sidePanel}</div>
         </div>

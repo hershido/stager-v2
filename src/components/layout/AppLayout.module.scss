@@ -67,13 +67,19 @@
   background-color: var(--background-color-primary);
   box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
   z-index: 5;
-  transform: translateX(100%);
+  transform: translateX(calc(100% - 33px));
   transition: transform 0.3s ease;
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto 25px 1fr;
 
   &.open {
     transform: translateX(0);
+  }
+
+  /* During transition, prevent hover interactions */
+  &.transitioning > *:nth-child(2) {
+    pointer-events: none;
+    opacity: 0.5;
   }
 }
 

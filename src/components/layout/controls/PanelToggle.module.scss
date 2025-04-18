@@ -1,0 +1,28 @@
+@import "../../../styles/variables.scss";
+
+.panelToggle {
+  height: 100%;
+  background-color: var(--background-color-primary);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    filter: brightness(1.2);
+  }
+
+  &:active {
+    background-color: var(--background-color-primary);
+    filter: brightness(1);
+  }
+}
+
+/* This class is applied temporarily after clicking to reset hover state */
+.forceReset {
+  pointer-events: none;
+  background-color: var(--background-color-primary) !important;
+  filter: brightness(1) !important;
+}
