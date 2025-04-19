@@ -110,6 +110,7 @@ export function AppLayout({
           <PanelToggle
             onToggle={togglePanel}
             title={isPanelOpen ? "Close panel" : "Open panel"}
+            isOpen={isPanelOpen}
           />
           <div className={styles.sidePanelContent}>{sidePanel}</div>
         </div>
