@@ -1,11 +1,11 @@
 import { AppLayout } from "./components/layout/AppLayout";
-import { useDocumentService } from "./services/documentService";
+import { Stage } from "./components/Stage";
 import "./App.scss";
 
 function App() {
-  const { document } = useDocumentService();
-
   // Placeholder components - these will be replaced with actual components later
+
+  console.log("App component rendering");
   const HeaderPlaceholder = () => (
     <div style={{ padding: "20px", height: "100%" }}>
       <h1>Header</h1>
@@ -16,16 +16,6 @@ function App() {
     <div style={{ padding: "20px" }}>
       <h2>Sidebar</h2>
       <p>Items will go here</p>
-    </div>
-  );
-
-  const MainPlaceholder = () => (
-    <div style={{ padding: "20px" }}>
-      <h2>Stage Area</h2>
-      <p>
-        Stage: {document.stage.width} x {document.stage.height}
-      </p>
-      <p>Items: {document.items.length}</p>
     </div>
   );
 
@@ -40,7 +30,7 @@ function App() {
     <AppLayout
       header={<HeaderPlaceholder />}
       sidebar={<SidebarPlaceholder />}
-      main={<MainPlaceholder />}
+      main={<Stage />}
       sidePanel={<SidePanelPlaceholder />}
     />
   );
