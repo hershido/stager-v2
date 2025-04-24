@@ -1,6 +1,7 @@
 import { StageItem as StageItemType } from "../../../types/document";
 import { useContextMenu } from "../../hooks/useContextMenu";
-import { MenuItem } from "../../common/ContextMenu";
+import { MenuItemOrDivider } from "../../common/ContextMenu";
+import { useClipboard } from "../../../context/ClipboardContext";
 import styles from "./StageItem.module.scss";
 
 interface StageItemProps {
@@ -20,8 +21,23 @@ export function StageItem({
   onDelete,
   onFlip,
 }: StageItemProps) {
+  const { copyItem, cutItem } = useClipboard();
+
   // Define menu items for the item context menu
-  const itemMenuItems: MenuItem[] = [
+  const itemMenuItems: MenuItemOrDivider[] = [
+    {
+      id: "copy",
+      label: "Copy",
+      onClick: () => copyItem(item),
+    },
+    {
+      id: "cut",
+      label: "Cut",
+      onClick: () => {
+        cutItem(item, onDelete);
+      },
+    },
+    { type: "divider" as const },
     {
       id: "flip",
       label: item.isFlipped ? "Flip Normal" : "Flip Horizontally",

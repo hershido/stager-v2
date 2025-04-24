@@ -1,7 +1,7 @@
 import React, { useState, ReactNode } from "react";
 import {
   ContextMenu as ContextMenuComponent,
-  MenuItem,
+  MenuItemOrDivider,
 } from "../common/ContextMenu";
 
 interface ContextMenuState {
@@ -11,7 +11,7 @@ interface ContextMenuState {
 }
 
 interface UseContextMenuProps {
-  items: MenuItem[];
+  items: MenuItemOrDivider[];
   header?: ReactNode;
   onElementFilter?: (target: HTMLElement) => boolean;
   computeRelativePosition?: (
@@ -66,14 +66,7 @@ export function useContextMenu({
     setContextMenu((prev) => ({ ...prev, show: false }));
   };
 
-  // Wrap all click handlers to ensure menu closes after action
-  const wrappedItems = items.map((item) => ({
-    ...item,
-    onClick: () => {
-      item.onClick();
-      closeContextMenu();
-    },
-  }));
+  // No need to wrap click handlers since the ContextMenu component handles closing
 
   // Render the context menu component
   const ContextMenu = () => {
@@ -84,7 +77,7 @@ export function useContextMenu({
         position={contextMenu.position}
         onClose={closeContextMenu}
         header={header}
-        items={wrappedItems}
+        items={items}
       />
     );
   };

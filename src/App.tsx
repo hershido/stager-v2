@@ -1,9 +1,14 @@
+import { useEffect } from "react";
 import { AppLayout } from "./components/layout/AppLayout";
 import { StageContainer } from "./components/stage-components/container/StageContainer";
 import "./App.scss";
 
 function App() {
-  // Placeholder components - these will be replaced with actual components later
+  // Debug the App component
+  useEffect(() => {
+    console.log("App component mounted");
+    return () => console.log("App component unmounted");
+  }, []);
 
   console.log("App component rendering");
   const HeaderPlaceholder = () => (

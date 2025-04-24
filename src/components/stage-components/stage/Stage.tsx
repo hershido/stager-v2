@@ -3,7 +3,8 @@ import { useDocumentService } from "../../../services/documentService";
 import { StageItem as StageItemType } from "../../../types/document";
 import { StageItem } from "../item/StageItem";
 import { useContextMenu } from "../../hooks/useContextMenu";
-import { MenuItem } from "../../common/ContextMenu";
+import { MenuItemOrDivider } from "../../common/ContextMenu";
+import { useClipboard } from "../../../context/ClipboardContext";
 import styles from "./Stage.module.scss";
 
 interface StageProps {
@@ -13,6 +14,8 @@ interface StageProps {
 
 export function Stage({ showGrid, snapToGrid }: StageProps) {
   const { document, documentService } = useDocumentService();
+  const { clipboardItem, hasClipboardItem } = useClipboard();
+
   const [isDragging, setIsDragging] = useState(false);
   const [draggedItem, setDraggedItem] = useState<string | null>(null);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -59,13 +62,50 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
     documentService.addItem(newItem);
   };
 
+  // Paste an item from clipboard
+  const handlePasteItem = () => {
+    if (!clipboardItem || !contextMenuState.relativePosition) return;
+
+    // Apply grid snapping if enabled
+    let posX = contextMenuState.relativePosition.x;
+    let posY = contextMenuState.relativePosition.y;
+
+    if (snapToGrid) {
+      const { gridSize } = document.stage;
+      posX = Math.round(posX / gridSize) * gridSize;
+      posY = Math.round(posY / gridSize) * gridSize;
+    }
+
+    // Create a new item based on the clipboard item but with a new ID
+    const newItem: StageItemType = {
+      ...clipboardItem,
+      id: crypto.randomUUID(),
+      position: {
+        x: posX - 30, // Center item on click
+        y: posY - 30,
+      },
+    };
+
+    documentService.addItem(newItem);
+  };
+
   // Define menu items for the stage context menu
-  const stageMenuItems: MenuItem[] = [
+  const stageMenuItems: MenuItemOrDivider[] = [
     {
       id: "add-item",
-      label: "Add Item Here",
+      label: "Add Item",
       onClick: handleAddItem,
     },
+    ...(hasClipboardItem()
+      ? [
+          {
+            id: "paste",
+            label: "Paste",
+            onClick: handlePasteItem,
+          } as MenuItemOrDivider,
+        ]
+      : []),
+    { type: "divider" as const },
     {
       id: "clear",
       label: "Clear Stage",
