@@ -1,6 +1,5 @@
-import { useState } from "react";
 import { StageItem as StageItemType } from "../../../types/document";
-import { ContextMenu, MenuItem } from "../../common/ContextMenu";
+import { useItemContextMenu } from "./hooks/useItemContextMenu";
 import styles from "./StageItem.module.scss";
 
 interface StageItemProps {
@@ -20,12 +19,14 @@ export function StageItem({
   onDelete,
   onFlip,
 }: StageItemProps) {
-  const [contextMenu, setContextMenu] = useState<{
-    show: boolean;
-    position: { x: number; y: number };
-  }>({
-    show: false,
-    position: { x: 0, y: 0 },
+  // Use the item context menu hook
+  const { handleContextMenu, ItemContextMenu } = useItemContextMenu({
+    itemId: item.id,
+    itemName: item.name,
+    itemIcon: item.icon,
+    isFlipped: !!item.isFlipped,
+    onFlip,
+    onDelete,
   });
 
   // Determine position - use visual position for dragged item
@@ -39,42 +40,6 @@ export function StageItem({
     height: item.height ? `${item.height}px` : "auto",
     transform: item.isFlipped ? "scaleX(-1)" : undefined,
   };
-
-  const handleContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    setContextMenu({
-      show: true,
-      position: { x: e.clientX, y: e.clientY },
-    });
-  };
-
-  const closeContextMenu = () => {
-    setContextMenu((prev) => ({ ...prev, show: false }));
-  };
-
-  // Define menu items for the context menu
-  const menuItems: MenuItem[] = [
-    {
-      id: "flip",
-      label: item.isFlipped ? "Flip Normal" : "Flip Horizontally",
-      onClick: () => onFlip(item.id),
-    },
-    {
-      id: "delete",
-      label: "Delete",
-      onClick: () => onDelete(item.id),
-    },
-  ];
-
-  // Create a header for the context menu
-  const menuHeader = (
-    <div className={styles.contextMenuHeader}>
-      <div className={styles.headerIcon}>{item.icon}</div>
-      <div className={styles.headerName}>{item.name}</div>
-    </div>
-  );
 
   return (
     <>
@@ -92,14 +57,8 @@ export function StageItem({
         </div>
       </div>
 
-      {contextMenu.show && (
-        <ContextMenu
-          position={contextMenu.position}
-          onClose={closeContextMenu}
-          header={menuHeader}
-          items={menuItems}
-        />
-      )}
+      {/* Item context menu */}
+      <ItemContextMenu />
     </>
   );
 }
