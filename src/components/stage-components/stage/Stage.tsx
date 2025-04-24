@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useDocumentService } from "../../../services/documentService";
-import { StageItem } from "../../../types/document";
+import { StageItem as StageItemType } from "../../../types/document";
+import { StageItem } from "../item/StageItem";
 import styles from "./Stage.module.scss";
 
 interface StageProps {
@@ -24,7 +25,7 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
   useEffect(() => {
     // Only add mock item if we haven't added one yet and there are no items
     if (document.items.length === 0 && !hasAddedMockItem.current) {
-      const mockItem: StageItem = {
+      const mockItem: StageItemType = {
         id: crypto.randomUUID(),
         name: "Sample Item",
         category: "equipment",
@@ -38,7 +39,7 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
       };
 
       documentService.addItem(mockItem);
-      const mockItem2: StageItem = {
+      const mockItem2: StageItemType = {
         id: crypto.randomUUID(),
         name: "Sample Item",
         category: "equipment",
@@ -146,40 +147,6 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
     setDragVisualPosition(null);
   };
 
-  // Render each stage item
-  const renderStageItem = (item: StageItem) => {
-    // Determine position - use visual position for dragged item
-    const position =
-      item.id === draggedItem && dragVisualPosition
-        ? dragVisualPosition
-        : item.position;
-
-    const style = {
-      left: `${position.x}px`,
-      top: `${position.y}px`,
-      width: item.width ? `${item.width}px` : "auto",
-      height: item.height ? `${item.height}px` : "auto",
-      transform: item.isFlipped ? "scaleX(-1)" : undefined,
-    };
-
-    return (
-      <div
-        key={item.id}
-        className={styles.stageItem}
-        style={style}
-        onMouseDown={(e) => handleMouseDown(e, item.id)}
-      >
-        <div className={styles.itemContent}>
-          {/* Simple visual representation - can be enhanced later */}
-          <div className={styles.itemIcon}>
-            {item.icon ? <span>{item.icon}</span> : "□"}
-          </div>
-          <div className={styles.itemName}>{item.name}</div>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div
       className={styles.stage}
@@ -195,7 +162,15 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
       )}
 
       {/* Stage items */}
-      {document.items.map(renderStageItem)}
+      {document.items.map((item) => (
+        <StageItem
+          key={item.id}
+          item={item}
+          isDragged={item.id === draggedItem}
+          dragVisualPosition={dragVisualPosition}
+          onMouseDown={handleMouseDown}
+        />
+      ))}
 
       {/* Drag overlay - only shown when dragging */}
       {isDragging && (

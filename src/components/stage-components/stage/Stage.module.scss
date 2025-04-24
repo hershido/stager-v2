@@ -30,54 +30,6 @@
   background-size: 20px 20px;
 }
 
-.stageItem {
-  position: absolute;
-  cursor: move;
-  user-select: none;
-  min-width: 60px;
-  min-height: 60px;
-  background: white;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: box-shadow 0.2s ease, transform 0.1s ease;
-
-  &:hover {
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-    z-index: 2;
-  }
-
-  &:active {
-    transform: scale(1.02);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
-    z-index: 3;
-  }
-}
-
-.itemContent {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  padding: 8px;
-  box-sizing: border-box;
-}
-
-.itemIcon {
-  font-size: 24px;
-  margin-bottom: 8px;
-}
-
-.itemName {
-  font-size: 12px;
-  text-align: center;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 100%;
-}
-
 .dragOverlay {
   position: fixed;
   top: 0;
