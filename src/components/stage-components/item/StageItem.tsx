@@ -1,5 +1,6 @@
 import { StageItem as StageItemType } from "../../../types/document";
-import { useItemContextMenu } from "./hooks/useItemContextMenu";
+import { useContextMenu } from "../../hooks/useContextMenu";
+import { MenuItem } from "../../common/ContextMenu";
 import styles from "./StageItem.module.scss";
 
 interface StageItemProps {
@@ -19,14 +20,32 @@ export function StageItem({
   onDelete,
   onFlip,
 }: StageItemProps) {
-  // Use the item context menu hook
-  const { handleContextMenu, ItemContextMenu } = useItemContextMenu({
-    itemId: item.id,
-    itemName: item.name,
-    itemIcon: item.icon,
-    isFlipped: !!item.isFlipped,
-    onFlip,
-    onDelete,
+  // Define menu items for the item context menu
+  const itemMenuItems: MenuItem[] = [
+    {
+      id: "flip",
+      label: item.isFlipped ? "Flip Normal" : "Flip Horizontally",
+      onClick: () => onFlip(item.id),
+    },
+    {
+      id: "delete",
+      label: "Delete",
+      onClick: () => onDelete(item.id),
+    },
+  ];
+
+  // Create a header for the context menu
+  const itemHeader = (
+    <div className={styles.contextMenuHeader}>
+      <div className={styles.headerIcon}>{item.icon}</div>
+      <div className={styles.headerName}>{item.name}</div>
+    </div>
+  );
+
+  // Use the context menu hook
+  const { handleContextMenu, ContextMenu: ItemContextMenu } = useContextMenu({
+    items: itemMenuItems,
+    header: itemHeader,
   });
 
   // Determine position - use visual position for dragged item
