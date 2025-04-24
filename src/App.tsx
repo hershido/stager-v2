@@ -1,5 +1,5 @@
 import { AppLayout } from "./components/layout/AppLayout";
-import { Stage } from "./components/Stage";
+import { StageContainer } from "./components/stage-components/container/StageContainer";
 import "./App.scss";
 
 function App() {
@@ -30,7 +30,7 @@ function App() {
     <AppLayout
       header={<HeaderPlaceholder />}
       sidebar={<SidebarPlaceholder />}
-      main={<Stage />}
+      main={<StageContainer />}
       sidePanel={<SidePanelPlaceholder />}
     />
   );
