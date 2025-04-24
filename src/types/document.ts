@@ -10,8 +10,8 @@ export interface BaseStageItem {
     x: number;
     y: number;
   };
-  width?: number;
-  height?: number;
+  width: number;
+  height: number;
   isFlipped?: boolean;
 }
 

@@ -93,18 +93,40 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
   const handleOverlayMouseMove = (e: React.MouseEvent) => {
     if (!isDragging || !draggedItem || !stageRect) return;
 
+    // Find the current item to get its dimensions
+    const item = document.items.find((item) => item.id === draggedItem);
+    if (!item) return;
+
+    const itemWidth = item.width;
+    const itemHeight = item.height;
+
     const newX = e.clientX - stageRect.left - offset.x;
     const newY = e.clientY - stageRect.top - offset.y;
+
+    // Calculate constrained position
+    let constrainedX = Math.max(
+      0,
+      Math.min(document.stage.width - itemWidth, newX)
+    );
+    let constrainedY = Math.max(
+      0,
+      Math.min(document.stage.height - itemHeight, newY)
+    );
 
     // Only snap to grid if the snapToGrid option is enabled
     if (snapToGrid) {
       const { gridSize } = document.stage;
-      const snappedX = Math.round(newX / gridSize) * gridSize;
-      const snappedY = Math.round(newY / gridSize) * gridSize;
-      setDragVisualPosition({ x: snappedX, y: snappedY });
+      const snappedX = Math.round(constrainedX / gridSize) * gridSize;
+      const snappedY = Math.round(constrainedY / gridSize) * gridSize;
+
+      // Make sure snapping doesn't push outside boundaries
+      constrainedX = Math.min(document.stage.width - itemWidth, snappedX);
+      constrainedY = Math.min(document.stage.height - itemHeight, snappedY);
+
+      setDragVisualPosition({ x: constrainedX, y: constrainedY });
     } else {
-      // Free movement without snapping
-      setDragVisualPosition({ x: newX, y: newY });
+      // Free movement but still constrained
+      setDragVisualPosition({ x: constrainedX, y: constrainedY });
     }
   };
 
