@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useDocumentService } from "../../../services/documentService";
 import { StageItem as StageItemType } from "../../../types/document";
 import { StageItem } from "../item/StageItem";
+import { ContextMenu, MenuItem } from "../../common/ContextMenu";
 import styles from "./Stage.module.scss";
 
 interface StageProps {
@@ -20,6 +21,17 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
     y: number;
   } | null>(null);
   const hasAddedMockItem = useRef(false);
+
+  // State for the stage context menu
+  const [stageContextMenu, setStageContextMenu] = useState<{
+    show: boolean;
+    position: { x: number; y: number };
+    stagePosition: { x: number; y: number };
+  }>({
+    show: false,
+    position: { x: 0, y: 0 },
+    stagePosition: { x: 0, y: 0 },
+  });
 
   // Add a mock item if none exist
   useEffect(() => {
@@ -64,6 +76,9 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
 
   // Handle stage item dragging
   const handleMouseDown = (e: React.MouseEvent, itemId: string) => {
+    // Skip if right-button
+    if (e.button === 2) return;
+
     const item = document.items.find((item) => item.id === itemId);
     if (!item) return;
 
@@ -147,6 +162,99 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
     setDragVisualPosition(null);
   };
 
+  // Delete an item
+  const handleDeleteItem = (itemId: string) => {
+    documentService.removeItem(itemId);
+  };
+
+  // Flip an item horizontally
+  const handleFlipItem = (itemId: string) => {
+    const item = document.items.find((item) => item.id === itemId);
+    if (item) {
+      documentService.updateItem(itemId, {
+        isFlipped: !item.isFlipped,
+      });
+    }
+  };
+
+  // Handle background context menu
+  const handleStageContextMenu = (e: React.MouseEvent) => {
+    // Only show context menu when clicking on stage background, not on items
+    if ((e.target as HTMLElement).closest(`.${styles.stageItem}`)) return;
+
+    e.preventDefault();
+
+    // Get the stage element and its rect
+    const stageElement = e.currentTarget as HTMLElement;
+    const currentStageRect = stageElement.getBoundingClientRect();
+
+    // Calculate stage-relative coordinates
+    const stagePosition = {
+      x: e.clientX - currentStageRect.left,
+      y: e.clientY - currentStageRect.top,
+    };
+
+    setStageContextMenu({
+      show: true,
+      position: { x: e.clientX, y: e.clientY },
+      stagePosition,
+    });
+  };
+
+  // Add a new item at click position
+  const handleAddItem = () => {
+    const { stagePosition } = stageContextMenu;
+
+    // Apply grid snapping if enabled
+    let posX = stagePosition.x;
+    let posY = stagePosition.y;
+
+    if (snapToGrid) {
+      const { gridSize } = document.stage;
+      posX = Math.round(posX / gridSize) * gridSize;
+      posY = Math.round(posY / gridSize) * gridSize;
+    }
+
+    const newItem: StageItemType = {
+      id: crypto.randomUUID(),
+      name: "New Item",
+      category: "equipment",
+      icon: "📦",
+      position: {
+        x: posX - 30, // Center item on click
+        y: posY - 30,
+      },
+      width: 60,
+      height: 60,
+    };
+
+    documentService.addItem(newItem);
+  };
+
+  // Clear all items from stage
+  const handleClearStage = () => {
+    // You would need to add a method to documentService to handle this
+    // For now we'll just remove each item
+    [...document.items].forEach((item) => {
+      documentService.removeItem(item.id);
+    });
+  };
+
+  // Define menu items for the stage context menu
+  const stageMenuItems: MenuItem[] = [
+    {
+      id: "add-item",
+      label: "Add Item Here",
+      onClick: handleAddItem,
+    },
+    {
+      id: "clear",
+      label: "Clear Stage",
+      onClick: handleClearStage,
+      disabled: document.items.length === 0,
+    },
+  ];
+
   return (
     <div
       className={styles.stage}
@@ -155,6 +263,7 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
         height: `${document.stage.height}px`,
         backgroundColor: document.stage.backgroundColor,
       }}
+      onContextMenu={handleStageContextMenu}
     >
       {/* Grid lines - only show when showGrid is true */}
       {showGrid && (
@@ -169,6 +278,8 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
           isDragged={item.id === draggedItem}
           dragVisualPosition={dragVisualPosition}
           onMouseDown={handleMouseDown}
+          onDelete={handleDeleteItem}
+          onFlip={handleFlipItem}
         />
       ))}
 
@@ -179,6 +290,18 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
           onMouseMove={handleOverlayMouseMove}
           onMouseUp={handleOverlayMouseUp}
           onMouseLeave={handleOverlayMouseUp}
+        />
+      )}
+
+      {/* Stage context menu */}
+      {stageContextMenu.show && (
+        <ContextMenu
+          position={stageContextMenu.position}
+          onClose={() =>
+            setStageContextMenu({ ...stageContextMenu, show: false })
+          }
+          header={<div className={styles.contextMenuTitle}>Stage Options</div>}
+          items={stageMenuItems}
         />
       )}
     </div>

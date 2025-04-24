@@ -45,3 +45,24 @@
   white-space: nowrap;
   max-width: 100%;
 }
+
+/* Context menu specific styles */
+.contextMenuHeader {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  color: #333;
+}
+
+.headerIcon {
+  font-size: 18px;
+  margin-right: 8px;
+}
+
+.headerName {
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

@@ -1,0 +1,76 @@
+.contextMenuOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  background-color: transparent;
+}
+
+.contextMenu {
+  position: absolute;
+  min-width: 180px;
+  background: white;
+  border-radius: 4px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  z-index: 1001;
+  animation: fadeIn 0.1s ease-out;
+  color: #333;
+}
+
+.contextMenuHeader {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #eaeaea;
+  color: #333;
+}
+
+.menuItems {
+  display: flex;
+  flex-direction: column;
+}
+
+.menuItem {
+  border: none;
+  background: none;
+  text-align: left;
+  padding: 10px 15px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+  color: #333;
+
+  &:hover:not(:disabled) {
+    background-color: #f0f7ff;
+  }
+
+  &:active:not(:disabled) {
+    background-color: #e6f0fd;
+  }
+
+  &:disabled {
+    color: #999;
+    cursor: default;
+  }
+}
+
+.divider {
+  height: 1px;
+  margin: 4px 0;
+  background-color: #eaeaea;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
