@@ -15,6 +15,10 @@ export function Stage() {
   } | null>(null);
   const hasAddedMockItem = useRef(false);
 
+  // Add states for grid visibility and snap-to-grid
+  const [showGrid, setShowGrid] = useState(true);
+  const [snapToGrid, setSnapToGrid] = useState(true);
+
   // Add a mock item if none exist
   useEffect(() => {
     // Only add mock item if we haven't added one yet and there are no items
@@ -33,6 +37,20 @@ export function Stage() {
       };
 
       documentService.addItem(mockItem);
+      const mockItem2: StageItem = {
+        id: crypto.randomUUID(),
+        name: "Sample Item",
+        category: "equipment",
+        icon: "🎹",
+        position: {
+          x: document.stage.width / 2 - 30,
+          y: document.stage.height / 2 - 30,
+        },
+        width: 100,
+        height: 100,
+      };
+
+      documentService.addItem(mockItem2);
       hasAddedMockItem.current = true;
     }
   }, [
@@ -77,13 +95,16 @@ export function Stage() {
     const newX = e.clientX - stageRect.left - offset.x;
     const newY = e.clientY - stageRect.top - offset.y;
 
-    // Snap to grid
-    const { gridSize } = document.stage;
-    const snappedX = Math.round(newX / gridSize) * gridSize;
-    const snappedY = Math.round(newY / gridSize) * gridSize;
-
-    // Update visual position only, not the document
-    setDragVisualPosition({ x: snappedX, y: snappedY });
+    // Only snap to grid if the snapToGrid option is enabled
+    if (snapToGrid) {
+      const { gridSize } = document.stage;
+      const snappedX = Math.round(newX / gridSize) * gridSize;
+      const snappedY = Math.round(newY / gridSize) * gridSize;
+      setDragVisualPosition({ x: snappedX, y: snappedY });
+    } else {
+      // Free movement without snapping
+      setDragVisualPosition({ x: newX, y: newY });
+    }
   };
 
   const handleOverlayMouseUp = () => {
@@ -101,6 +122,10 @@ export function Stage() {
     setStageRect(null);
     setDragVisualPosition(null);
   };
+
+  // Toggle functions for grid visibility and snap-to-grid
+  const toggleShowGrid = () => setShowGrid((prev) => !prev);
+  const toggleSnapToGrid = () => setSnapToGrid((prev) => !prev);
 
   // Render each stage item
   const renderStageItem = (item: StageItem) => {
@@ -138,6 +163,27 @@ export function Stage() {
 
   return (
     <div className={styles.stageContainer}>
+      <div className={styles.stageControls}>
+        <div
+          className={`${styles.controlIcon} ${showGrid ? styles.active : ""}`}
+          onClick={toggleShowGrid}
+          title="Toggle Grid Visibility"
+        >
+          <span role="img" aria-label="Show Grid">
+            📏
+          </span>
+        </div>
+        <div
+          className={`${styles.controlIcon} ${snapToGrid ? styles.active : ""}`}
+          onClick={toggleSnapToGrid}
+          title="Toggle Snap to Grid"
+        >
+          <span role="img" aria-label="Snap to Grid">
+            🔒
+          </span>
+        </div>
+      </div>
+
       <div
         className={styles.stage}
         style={{
@@ -146,10 +192,12 @@ export function Stage() {
           backgroundColor: document.stage.backgroundColor,
         }}
       >
-        {/* Grid lines */}
-        <div className={styles.gridContainer}>
-          {/* Grid implementation will go here */}
-        </div>
+        {/* Grid lines - only show when showGrid is true */}
+        {showGrid && (
+          <div className={styles.gridContainer}>
+            {/* Grid implementation */}
+          </div>
+        )}
 
         {/* Stage items */}
         {document.items.map(renderStageItem)}
