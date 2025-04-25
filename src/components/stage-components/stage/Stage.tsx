@@ -6,6 +6,7 @@ import { MenuItemOrDivider } from "../../common/ContextMenu";
 import { useClipboard } from "../../../context/ClipboardContext";
 import { useStageState } from "./hooks/useStageState";
 import styles from "./Stage.module.scss";
+import React, { useRef, useCallback } from "react";
 
 interface StageProps {
   showGrid: boolean;
@@ -32,6 +33,21 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
     isItemSelected,
     getItemVisualPosition,
   } = actions;
+
+  const stageRef = useRef<HTMLDivElement>(null);
+
+  // Handle keyboard events
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      // Delete key - delete selected items
+      if (e.key === "Delete" || e.key === "Backspace") {
+        selectedItems.forEach((id) => {
+          handleDeleteItem(id);
+        });
+      }
+    },
+    [selectedItems, handleDeleteItem]
+  );
 
   // Clear all items from stage
   const handleClearStage = () => {
@@ -165,53 +181,59 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
   });
 
   return (
-    <div
-      className={styles.stage}
-      style={{
-        width: `${document.stage.width}px`,
-        height: `${document.stage.height}px`,
-        backgroundColor: document.stage.backgroundColor,
-      }}
-      data-stage
-      onContextMenu={handleContextMenu}
-      onClick={handleStageClick}
-    >
-      {/* Grid lines - only show when showGrid is true */}
-      {showGrid && (
-        <div
-          className={styles.gridContainer}
-          style={{
-            backgroundSize: `${document.stage.gridSize}px ${document.stage.gridSize}px`,
-          }}
-        />
-      )}
+    <>
+      <div
+        ref={stageRef}
+        className={styles.stage}
+        data-stage
+        data-testid="stage"
+        tabIndex={0}
+        style={{
+          width: `${document.stage.width}px`,
+          height: `${document.stage.height}px`,
+          backgroundColor: document.stage.backgroundColor,
+        }}
+        onClick={handleStageClick}
+        onContextMenu={handleContextMenu}
+        onKeyDown={handleKeyDown}
+      >
+        {/* Grid lines - only show when showGrid is true */}
+        {showGrid && (
+          <div
+            className={styles.gridContainer}
+            style={{
+              backgroundSize: `${document.stage.gridSize}px ${document.stage.gridSize}px`,
+            }}
+          />
+        )}
 
-      {/* Stage items */}
-      {document.items.map((item) => (
-        <StageItem
-          key={item.id}
-          item={item}
-          isDragged={isDragging && isItemSelected(item.id)}
-          isSelected={isItemSelected(item.id)}
-          dragVisualPosition={getItemVisualPosition(item.id)}
-          onMouseDown={handleMouseDown}
-          onDelete={handleDeleteItem}
-          onFlip={handleFlipItem}
-        />
-      ))}
+        {/* Stage items */}
+        {document.items.map((item) => (
+          <StageItem
+            key={item.id}
+            item={item}
+            isDragged={isDragging && isItemSelected(item.id)}
+            isSelected={isItemSelected(item.id)}
+            dragVisualPosition={getItemVisualPosition(item.id)}
+            onMouseDown={handleMouseDown}
+            onDelete={handleDeleteItem}
+            onFlip={handleFlipItem}
+          />
+        ))}
 
-      {/* Drag overlay - only shown when dragging */}
-      {isDragging && (
-        <div
-          className={styles.dragOverlay}
-          onMouseMove={handleOverlayMouseMove}
-          onMouseUp={handleOverlayMouseUp}
-          onMouseLeave={handleOverlayMouseUp}
-        />
-      )}
+        {/* Drag overlay - only shown when dragging */}
+        {isDragging && (
+          <div
+            className={styles.dragOverlay}
+            onMouseMove={handleOverlayMouseMove}
+            onMouseUp={handleOverlayMouseUp}
+            onMouseLeave={handleOverlayMouseUp}
+          />
+        )}
 
-      {/* Stage context menu */}
-      <StageContextMenu />
-    </div>
+        {/* Stage context menu */}
+        <StageContextMenu />
+      </div>
+    </>
   );
 }
