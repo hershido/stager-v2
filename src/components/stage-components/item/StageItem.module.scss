@@ -1,6 +1,6 @@
 .stageItem {
   position: absolute;
-  cursor: move;
+  cursor: grab;
   user-select: none;
   min-width: 60px;
   min-height: 60px;
@@ -16,6 +16,7 @@
   }
 
   &:active {
+    cursor: grabbing;
     transform: scale(1.02);
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
     z-index: 3;

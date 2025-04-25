@@ -181,8 +181,9 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
       return;
     }
 
-    // If item isn't already selected, select it
-    if (!selectedItems.has(itemId)) {
+    // If item isn't already selected, or if multiple items are selected,
+    // select just this item
+    if (!selectedItems.has(itemId) || selectedItems.size > 1) {
       handleItemSelect(e, itemId);
     }
 
