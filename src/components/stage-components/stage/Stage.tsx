@@ -12,6 +12,11 @@ interface StageProps {
   snapToGrid: boolean;
 }
 
+// Type to track initial positions of items when dragging starts
+interface DraggedItemsInitialState {
+  [itemId: string]: { x: number; y: number };
+}
+
 export function Stage({ showGrid, snapToGrid }: StageProps) {
   const { document, documentService } = useDocumentService();
   const { clipboardItem, hasClipboardItem } = useClipboard();
@@ -23,10 +28,15 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
   const [draggedItem, setDraggedItem] = useState<string | null>(null);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [stageRect, setStageRect] = useState<DOMRect | null>(null);
-  const [dragVisualPosition, setDragVisualPosition] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
+
+  // Track initial positions of all selected items when drag starts
+  const [initialItemPositions, setInitialItemPositions] =
+    useState<DraggedItemsInitialState>({});
+
+  // Track all items' current visual positions during drag
+  const [selectedItemsPositions, setSelectedItemsPositions] = useState<{
+    [itemId: string]: { x: number; y: number } | null;
+  }>({});
 
   // Clear selection when clicking on stage background
   const handleStageClick = (e: React.MouseEvent) => {
@@ -181,9 +191,9 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
       return;
     }
 
-    // If item isn't already selected, or if multiple items are selected,
-    // select just this item
-    if (!selectedItems.has(itemId) || selectedItems.size > 1) {
+    // If item isn't already selected, select just this item
+    // This preserves multi-selection when starting to drag a selected item
+    if (!selectedItems.has(itemId)) {
       handleItemSelect(e, itemId);
     }
 
@@ -202,10 +212,30 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
       setStageRect(currentStageRect);
     }
 
-    // Initialize visual position to the item's current position
-    setDragVisualPosition(item.position);
-    setIsDragging(true);
+    // Save initial positions of all selected items
+    const initialPositions: DraggedItemsInitialState = {};
+    const positions: { [id: string]: { x: number; y: number } | null } = {};
+
+    // If dragging a selected item, save positions of all selected items
+    if (selectedItems.has(itemId)) {
+      document.items.forEach((item) => {
+        if (selectedItems.has(item.id)) {
+          initialPositions[item.id] = { ...item.position };
+          positions[item.id] = { ...item.position };
+        }
+      });
+    } else {
+      // If dragging a non-selected item, just save its position
+      initialPositions[itemId] = { ...item.position };
+      positions[itemId] = { ...item.position };
+    }
+
+    setInitialItemPositions(initialPositions);
+    setSelectedItemsPositions(positions);
+
+    // Set dragging state
     setDraggedItem(itemId);
+    setIsDragging(true);
 
     // Prevent text selection during drag
     e.preventDefault();
@@ -243,20 +273,82 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
       // Make sure snapping doesn't push outside boundaries
       constrainedX = Math.min(document.stage.width - itemWidth, snappedX);
       constrainedY = Math.min(document.stage.height - itemHeight, snappedY);
-
-      setDragVisualPosition({ x: constrainedX, y: constrainedY });
-    } else {
-      // Free movement but still constrained
-      setDragVisualPosition({ x: constrainedX, y: constrainedY });
     }
+
+    // Update the dragged item position
+    setDraggedItem(draggedItem);
+
+    // Calculate movement delta from initial position
+    const initialPos = initialItemPositions[draggedItem];
+    if (!initialPos) return;
+
+    const deltaX = constrainedX - initialPos.x;
+    const deltaY = constrainedY - initialPos.y;
+
+    // Update positions of all selected items
+    const newPositions = { ...selectedItemsPositions };
+
+    Object.keys(initialItemPositions).forEach((id) => {
+      if (id === draggedItem) {
+        newPositions[id] = { x: constrainedX, y: constrainedY };
+      } else if (selectedItems.has(id)) {
+        // Apply the same delta to other selected items
+        const initialItemPos = initialItemPositions[id];
+        if (initialItemPos) {
+          const item = document.items.find((item) => item.id === id);
+          if (item) {
+            // Apply constraints to ensure items stay within stage boundaries
+            const newX = Math.max(
+              0,
+              Math.min(
+                document.stage.width - (item.width || 60),
+                initialItemPos.x + deltaX
+              )
+            );
+            const newY = Math.max(
+              0,
+              Math.min(
+                document.stage.height - (item.height || 60),
+                initialItemPos.y + deltaY
+              )
+            );
+
+            // Apply grid snapping if enabled
+            let finalX = newX;
+            let finalY = newY;
+
+            if (snapToGrid) {
+              const { gridSize } = document.stage;
+              finalX = Math.round(newX / gridSize) * gridSize;
+              finalY = Math.round(newY / gridSize) * gridSize;
+
+              // Final boundary check after snapping
+              finalX = Math.min(
+                document.stage.width - (item.width || 60),
+                finalX
+              );
+              finalY = Math.min(
+                document.stage.height - (item.height || 60),
+                finalY
+              );
+            }
+
+            newPositions[id] = { x: finalX, y: finalY };
+          }
+        }
+      }
+    });
+
+    setSelectedItemsPositions(newPositions);
   };
 
   const handleOverlayMouseUp = () => {
-    if (draggedItem && dragVisualPosition) {
-      console.log("Updating document with final position:", dragVisualPosition);
-      // Only update the document on mouse up with the final position
-      documentService.updateItem(draggedItem, {
-        position: dragVisualPosition,
+    if (isDragging) {
+      // Update all selected items' positions in the document
+      Object.entries(selectedItemsPositions).forEach(([itemId, position]) => {
+        if (position) {
+          documentService.updateItem(itemId, { position });
+        }
       });
     }
 
@@ -264,7 +356,8 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
     setIsDragging(false);
     setDraggedItem(null);
     setStageRect(null);
-    setDragVisualPosition(null);
+    setInitialItemPositions({});
+    setSelectedItemsPositions({});
   };
 
   // Delete an item
@@ -310,9 +403,13 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
         <StageItem
           key={item.id}
           item={item}
-          isDragged={item.id === draggedItem}
+          isDragged={isDragging && selectedItems.has(item.id)}
           isSelected={selectedItems.has(item.id)}
-          dragVisualPosition={dragVisualPosition}
+          dragVisualPosition={
+            isDragging && selectedItemsPositions[item.id]
+              ? selectedItemsPositions[item.id]
+              : null
+          }
           onMouseDown={handleMouseDown}
           onDelete={handleDeleteItem}
           onFlip={handleFlipItem}
