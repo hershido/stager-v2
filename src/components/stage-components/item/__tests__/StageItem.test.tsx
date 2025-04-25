@@ -40,6 +40,17 @@ describe("StageItem", () => {
     height: 80,
   };
 
+  // Second mock item for multi-selection tests
+  const mockItem2: StageItemType = {
+    id: "item-2",
+    name: "Test Item 2",
+    category: "equipment",
+    icon: "🎹",
+    position: { x: 300, y: 400 },
+    width: 100,
+    height: 100,
+  };
+
   // Mock handlers
   const mockOnMouseDown = vi.fn();
   const mockOnDelete = vi.fn();
@@ -48,6 +59,11 @@ describe("StageItem", () => {
   // Mock clipboard functions
   const mockCopyItem = vi.fn();
   const mockCutItem = vi.fn();
+  const mockCopyItems = vi.fn((items) => items);
+  const mockCutItems = vi.fn((items) => items);
+
+  // Mock getSelectedItems function
+  const mockGetSelectedItems = vi.fn().mockReturnValue([mockItem, mockItem2]);
 
   // Mock context menu
   const mockHandleContextMenu = vi.fn();
@@ -60,6 +76,8 @@ describe("StageItem", () => {
     (useClipboard as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       copyItem: mockCopyItem,
       cutItem: mockCutItem,
+      copyItems: mockCopyItems,
+      cutItems: mockCutItems,
     });
 
     // Setup context menu mock
@@ -276,5 +294,141 @@ describe("StageItem", () => {
     expect(menuItems[3].id).toBe("flip");
     expect(menuItems[4].id).toBe("delete");
     expect(menuItems[4].label).toBe("Delete");
+  });
+
+  test("creates context menu with correct items for multi-selection", () => {
+    render(
+      <StageItem
+        item={mockItem}
+        isDragged={false}
+        isSelected={true}
+        dragVisualPosition={null}
+        onMouseDown={mockOnMouseDown}
+        onDelete={mockOnDelete}
+        onFlip={mockOnFlip}
+        selectedItemsCount={2}
+        getSelectedItems={mockGetSelectedItems}
+      />
+    );
+
+    // Check that useContextMenu was called with the correct menu items for multi-selection
+    expect(useContextMenu).toHaveBeenCalledTimes(1);
+    const contextMenuCall = (
+      useContextMenu as unknown as ReturnType<typeof vi.fn>
+    ).mock.calls[0][0];
+
+    // Verify menu items - we can't test the onClick functions directly,
+    // but we can check the item structure
+    const menuItems = contextMenuCall.items;
+    expect(menuItems).toHaveLength(5);
+
+    // Check that the labels are the same as in single selection
+    expect(menuItems[0].id).toBe("copy");
+    expect(menuItems[0].label).toBe("Copy");
+    expect(menuItems[1].id).toBe("cut");
+    expect(menuItems[1].label).toBe("Cut");
+    expect(menuItems[3].id).toBe("flip");
+    expect(menuItems[3].label).toBe("Flip");
+    expect(menuItems[4].id).toBe("delete");
+    expect(menuItems[4].label).toBe("Delete");
+
+    // Check that the header correctly shows multi-selection
+    const header = contextMenuCall.header;
+    expect(header.props.children[0].props.children).toBe("📑");
+    expect(header.props.children[1].props.children).toBe("2 Items Selected");
+  });
+
+  test("menu actions handle multiple items when multi-selected", async () => {
+    // Explicitly mock getSelectedItems to return an array that we can verify
+    const items = [mockItem, mockItem2];
+    const getSelectedItemsMock = vi.fn().mockReturnValue(items);
+
+    render(
+      <StageItem
+        item={mockItem}
+        isDragged={false}
+        isSelected={true}
+        dragVisualPosition={null}
+        onMouseDown={mockOnMouseDown}
+        onDelete={mockOnDelete}
+        onFlip={mockOnFlip}
+        selectedItemsCount={2}
+        getSelectedItems={getSelectedItemsMock}
+      />
+    );
+
+    // Get the context menu handler calls
+    const contextMenuCall = (
+      useContextMenu as unknown as ReturnType<typeof vi.fn>
+    ).mock.calls[0][0];
+    const menuItems = contextMenuCall.items;
+
+    // Trigger Copy action
+    menuItems[0].onClick();
+    expect(getSelectedItemsMock).toHaveBeenCalledTimes(1);
+    expect(mockCopyItems).toHaveBeenCalledTimes(1);
+    expect(mockCopyItems).toHaveBeenCalledWith(items);
+
+    // Trigger Cut action
+    menuItems[1].onClick();
+    expect(getSelectedItemsMock).toHaveBeenCalledTimes(2);
+    expect(mockCutItems).toHaveBeenCalledTimes(1);
+    expect(mockCutItems).toHaveBeenCalledWith(items, mockOnDelete);
+
+    // Trigger Flip action
+    menuItems[3].onClick();
+    expect(getSelectedItemsMock).toHaveBeenCalledTimes(3);
+    expect(mockOnFlip).toHaveBeenCalledTimes(2);
+    expect(mockOnFlip).toHaveBeenNthCalledWith(1, "item-1");
+    expect(mockOnFlip).toHaveBeenNthCalledWith(2, "item-2");
+
+    // Trigger Delete action
+    menuItems[4].onClick();
+    expect(getSelectedItemsMock).toHaveBeenCalledTimes(4);
+    expect(mockOnDelete).toHaveBeenCalledTimes(2);
+    expect(mockOnDelete).toHaveBeenNthCalledWith(1, "item-1");
+    expect(mockOnDelete).toHaveBeenNthCalledWith(2, "item-2");
+  });
+
+  test("menu actions handle single item when not multi-selected", async () => {
+    render(
+      <StageItem
+        item={mockItem}
+        isDragged={false}
+        isSelected={true}
+        dragVisualPosition={null}
+        onMouseDown={mockOnMouseDown}
+        onDelete={mockOnDelete}
+        onFlip={mockOnFlip}
+        selectedItemsCount={1}
+        getSelectedItems={mockGetSelectedItems}
+      />
+    );
+
+    // Get the context menu handler calls
+    const contextMenuCall = (
+      useContextMenu as unknown as ReturnType<typeof vi.fn>
+    ).mock.calls[0][0];
+    const menuItems = contextMenuCall.items;
+
+    // Trigger Copy action
+    menuItems[0].onClick();
+    expect(mockCopyItem).toHaveBeenCalledTimes(1);
+    expect(mockCopyItem).toHaveBeenCalledWith(mockItem);
+
+    // Trigger Cut action
+    menuItems[1].onClick();
+    expect(mockCutItem).toHaveBeenCalledTimes(1);
+    expect(mockCutItem).toHaveBeenCalledWith(mockItem, mockOnDelete);
+
+    // Trigger Flip action
+    menuItems[3].onClick();
+    expect(mockOnFlip).toHaveBeenCalledTimes(1);
+    expect(mockOnFlip).toHaveBeenCalledWith("item-1");
+
+    // Trigger Delete action
+    menuItems[4].onClick();
+    expect(mockOnDelete).toHaveBeenCalledTimes(1);
+    expect(mockOnDelete).toHaveBeenCalledWith("item-1");
   });
 });

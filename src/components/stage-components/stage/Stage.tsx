@@ -15,7 +15,7 @@ interface StageProps {
 
 export function Stage({ showGrid, snapToGrid }: StageProps) {
   const { document, documentService } = useDocumentService();
-  const { clipboardItem, hasClipboardItem } = useClipboard();
+  const { clipboardItem, clipboardItems, hasClipboardItem } = useClipboard();
 
   // Use the stage state hook
   const [state, actions] = useStageState({ snapToGrid });
@@ -101,40 +101,99 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
 
   // Paste an item from clipboard
   const handlePasteItem = () => {
-    if (!clipboardItem || !contextMenuState.relativePosition) return;
+    if (!hasClipboardItem() || !contextMenuState.relativePosition) return;
 
     const { gridSize } = document.stage;
-    const itemWidth = clipboardItem.width || 60;
-    const itemHeight = clipboardItem.height || 60;
 
-    // Get click position
+    // Calculate base position for the first item
     const posX = contextMenuState.relativePosition.x;
     const posY = contextMenuState.relativePosition.y;
 
-    // First subtract half the item size to center it at the click position
-    const centerX = posX - itemWidth / 2;
-    const centerY = posY - itemHeight / 2;
+    if (clipboardItems && clipboardItems.length > 1) {
+      // Find center of all items to be pasted
+      const itemsCount = clipboardItems.length;
 
-    // Then apply grid snapping if enabled
-    let finalX = centerX;
-    let finalY = centerY;
+      // Calculate average position to use as a reference point
+      let avgX = 0;
+      let avgY = 0;
+      clipboardItems.forEach((item) => {
+        avgX += item.position.x;
+        avgY += item.position.y;
+      });
+      avgX /= itemsCount;
+      avgY /= itemsCount;
 
-    if (snapToGrid) {
-      finalX = Math.round(centerX / gridSize) * gridSize;
-      finalY = Math.round(centerY / gridSize) * gridSize;
+      // Paste each item with its relative position to the click point
+      clipboardItems.forEach((item) => {
+        const itemWidth = item.width || 60;
+        const itemHeight = item.height || 60;
+
+        // Calculate relative position from average
+        const relX = item.position.x - avgX;
+        const relY = item.position.y - avgY;
+
+        // Calculate final position, centered at click point
+        let finalX = posX + relX;
+        let finalY = posY + relY;
+
+        // Apply grid snapping if enabled
+        if (snapToGrid) {
+          finalX = Math.round(finalX / gridSize) * gridSize;
+          finalY = Math.round(finalY / gridSize) * gridSize;
+        }
+
+        // Constrain to stage boundaries
+        finalX = Math.max(
+          0,
+          Math.min(document.stage.width - itemWidth, finalX)
+        );
+        finalY = Math.max(
+          0,
+          Math.min(document.stage.height - itemHeight, finalY)
+        );
+
+        // Create a new item
+        const newItem: StageItemType = {
+          ...item,
+          id: crypto.randomUUID(),
+          position: {
+            x: finalX,
+            y: finalY,
+          },
+        };
+
+        documentService.addItem(newItem);
+      });
+    } else if (clipboardItem) {
+      // Original single item paste logic
+      const itemWidth = clipboardItem.width || 60;
+      const itemHeight = clipboardItem.height || 60;
+
+      // First subtract half the item size to center it at the click position
+      const centerX = posX - itemWidth / 2;
+      const centerY = posY - itemHeight / 2;
+
+      // Then apply grid snapping if enabled
+      let finalX = centerX;
+      let finalY = centerY;
+
+      if (snapToGrid) {
+        finalX = Math.round(centerX / gridSize) * gridSize;
+        finalY = Math.round(centerY / gridSize) * gridSize;
+      }
+
+      // Create a new item based on the clipboard item but with a new ID
+      const newItem: StageItemType = {
+        ...clipboardItem,
+        id: crypto.randomUUID(),
+        position: {
+          x: finalX,
+          y: finalY,
+        },
+      };
+
+      documentService.addItem(newItem);
     }
-
-    // Create a new item based on the clipboard item but with a new ID
-    const newItem: StageItemType = {
-      ...clipboardItem,
-      id: crypto.randomUUID(),
-      position: {
-        x: finalX,
-        y: finalY,
-      },
-    };
-
-    documentService.addItem(newItem);
   };
 
   // Define menu items for the stage context menu
@@ -218,6 +277,10 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
             onMouseDown={handleMouseDown}
             onDelete={handleDeleteItem}
             onFlip={handleFlipItem}
+            selectedItemsCount={selectedItems.size}
+            getSelectedItems={() =>
+              document.items.filter((i) => selectedItems.has(i.id))
+            }
           />
         ))}
 

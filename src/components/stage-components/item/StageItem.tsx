@@ -13,6 +13,8 @@ interface StageItemProps {
   onMouseDown: (e: React.MouseEvent, itemId: string) => void;
   onDelete: (itemId: string) => void;
   onFlip: (itemId: string) => void;
+  selectedItemsCount?: number;
+  getSelectedItems?: () => StageItemType[];
 }
 
 export function StageItem({
@@ -23,41 +25,91 @@ export function StageItem({
   onMouseDown,
   onDelete,
   onFlip,
+  selectedItemsCount = 0,
+  getSelectedItems = () => [],
 }: StageItemProps) {
-  const { copyItem, cutItem } = useClipboard();
+  const { copyItem, copyItems, cutItem, cutItems } = useClipboard();
+
+  const isMultiSelected = isSelected && selectedItemsCount > 1;
+
+  const handleCopyItems = () => {
+    if (isMultiSelected) {
+      // Get all selected items and copy them
+      const items = getSelectedItems();
+      copyItems(items);
+    } else {
+      copyItem(item);
+    }
+  };
+
+  const handleCutItems = () => {
+    if (isMultiSelected) {
+      // Get all selected items and cut them
+      const items = getSelectedItems();
+      cutItems(items, onDelete);
+    } else {
+      cutItem(item, onDelete);
+    }
+  };
+
+  const handleDeleteItems = () => {
+    if (isMultiSelected) {
+      // Delete all selected items
+      const items = getSelectedItems();
+      items.forEach((selectedItem) => {
+        onDelete(selectedItem.id);
+      });
+    } else {
+      onDelete(item.id);
+    }
+  };
+
+  const handleFlipItems = () => {
+    if (isMultiSelected) {
+      // Flip all selected items
+      const items = getSelectedItems();
+      items.forEach((selectedItem) => {
+        onFlip(selectedItem.id);
+      });
+    } else {
+      onFlip(item.id);
+    }
+  };
 
   // Define menu items for the item context menu
   const itemMenuItems: MenuItemOrDivider[] = [
     {
       id: "copy",
       label: "Copy",
-      onClick: () => copyItem(item),
+      onClick: handleCopyItems,
     },
     {
       id: "cut",
       label: "Cut",
-      onClick: () => {
-        cutItem(item, onDelete);
-      },
+      onClick: handleCutItems,
     },
     { type: "divider" as const },
     {
       id: "flip",
-      label: item.isFlipped ? "Flip Normal" : "Flip Horizontally",
-      onClick: () => onFlip(item.id),
+      label: "Flip",
+      onClick: handleFlipItems,
     },
     {
       id: "delete",
       label: "Delete",
-      onClick: () => onDelete(item.id),
+      onClick: handleDeleteItems,
     },
   ];
 
   // Create a header for the context menu
   const itemHeader = (
     <div className={styles.contextMenuHeader}>
-      <div className={styles.headerIcon}>{item.icon}</div>
-      <div className={styles.headerName}>{item.name}</div>
+      <div className={styles.headerIcon}>
+        {isMultiSelected ? "📑" : item.icon}
+      </div>
+      <div className={styles.headerName}>
+        {isMultiSelected ? `${selectedItemsCount} Items Selected` : item.name}
+      </div>
     </div>
   );
 
