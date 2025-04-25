@@ -36,6 +36,7 @@ export interface StageStateActions {
   // Selection actions
   handleStageClick: (e: React.MouseEvent) => void;
   handleItemSelect: (e: React.MouseEvent, itemId: string) => void;
+  selectAllItems: () => void;
 
   // Dragging actions
   handleMouseDown: (e: React.MouseEvent, itemId: string) => void;
@@ -439,6 +440,15 @@ export function useStageState({
     [document.items, documentService]
   );
 
+  // Select all items on the stage
+  const selectAllItems = useCallback(() => {
+    const newSelectedItems = new Set<string>();
+    document.items.forEach((item) => {
+      newSelectedItems.add(item.id);
+    });
+    setSelectedItems(newSelectedItems);
+  }, [document.items]);
+
   // Helper functions
   const isItemSelected = useCallback(
     (itemId: string) => {
@@ -469,6 +479,7 @@ export function useStageState({
   const actions: StageStateActions = {
     handleStageClick,
     handleItemSelect,
+    selectAllItems,
     handleMouseDown,
     handleOverlayMouseMove,
     handleOverlayMouseUp,

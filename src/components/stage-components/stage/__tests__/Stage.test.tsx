@@ -745,4 +745,46 @@ describe("Stage", () => {
       })
     );
   });
+
+  test("Ctrl+A keyboard shortcut selects all items on the stage", () => {
+    // Reset selected items
+    mockSelectedItems.clear();
+
+    // Mock the selectAllItems function to verify it's called
+    const mockSelectAllItems = vi.fn(() => {
+      // This simulates what the real selectAllItems function would do:
+      // Add all item IDs to the selectedItems Set
+      mockItems.forEach((item) => {
+        mockSelectedItems.add(item.id);
+      });
+    });
+
+    // Add selectAllItems to the mocked actions
+    (useStageState as unknown as ReturnType<typeof vi.fn>).mockReturnValue([
+      mockStageState,
+      {
+        ...mockStageActions,
+        selectAllItems: mockSelectAllItems,
+      },
+    ]);
+
+    render(<Stage showGrid={true} snapToGrid={true} />);
+
+    // Get stage element
+    const stageElement = screen.getByTestId("stage");
+
+    // Simulate Ctrl+A keyboard shortcut
+    fireEvent.keyDown(stageElement, {
+      key: "a",
+      ctrlKey: true,
+    });
+
+    // Verify the selectAllItems function was called
+    expect(mockSelectAllItems).toHaveBeenCalledTimes(1);
+
+    // Verify all items are now selected (after our mock implementation runs)
+    expect(mockSelectedItems.size).toBe(mockItems.length);
+    expect(mockSelectedItems.has("item-1")).toBe(true);
+    expect(mockSelectedItems.has("item-2")).toBe(true);
+  });
 });

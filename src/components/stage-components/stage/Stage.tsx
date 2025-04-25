@@ -43,6 +43,7 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
     handleFlipItem,
     isItemSelected,
     getItemVisualPosition,
+    selectAllItems,
   } = actions;
 
   const stageRef = useRef<HTMLDivElement>(null);
@@ -286,6 +287,13 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
       const isCtrlOrCmd = e.ctrlKey || e.metaKey;
 
       if (isCtrlOrCmd) {
+        // Select All - Ctrl/Cmd+A
+        if (e.key === "a") {
+          console.log("Select All triggered");
+          e.preventDefault();
+          selectAllItems();
+        }
+
         // Copy - Ctrl/Cmd+C
         if (e.key === "c" && selectedItems.size > 0) {
           console.log("Copy triggered, items:", Array.from(selectedItems));
@@ -350,6 +358,7 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
       contextMenuState,
       mousePosition,
       document.stage,
+      selectAllItems,
     ]
   );
 
