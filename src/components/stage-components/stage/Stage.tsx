@@ -46,14 +46,25 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
   const handleAddItem = () => {
     if (!contextMenuState.relativePosition) return;
 
-    // Apply grid snapping if enabled
-    let posX = contextMenuState.relativePosition.x;
-    let posY = contextMenuState.relativePosition.y;
+    const { gridSize } = document.stage;
+    const itemSize = 60; // Standard item size
+    const halfSize = itemSize / 2;
+
+    // Get click position
+    const posX = contextMenuState.relativePosition.x;
+    const posY = contextMenuState.relativePosition.y;
+
+    // First subtract half the item size to center it at the click position
+    const centerX = posX - halfSize;
+    const centerY = posY - halfSize;
+
+    // Then apply grid snapping if enabled
+    let finalX = centerX;
+    let finalY = centerY;
 
     if (snapToGrid) {
-      const { gridSize } = document.stage;
-      posX = Math.round(posX / gridSize) * gridSize;
-      posY = Math.round(posY / gridSize) * gridSize;
+      finalX = Math.round(centerX / gridSize) * gridSize;
+      finalY = Math.round(centerY / gridSize) * gridSize;
     }
 
     const newItem: StageItemType = {
@@ -62,11 +73,11 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
       category: "equipment",
       icon: "📦",
       position: {
-        x: posX - 30, // Center item on click
-        y: posY - 30,
+        x: finalX,
+        y: finalY,
       },
-      width: 60,
-      height: 60,
+      width: itemSize,
+      height: itemSize,
     };
 
     documentService.addItem(newItem);
@@ -76,14 +87,25 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
   const handlePasteItem = () => {
     if (!clipboardItem || !contextMenuState.relativePosition) return;
 
-    // Apply grid snapping if enabled
-    let posX = contextMenuState.relativePosition.x;
-    let posY = contextMenuState.relativePosition.y;
+    const { gridSize } = document.stage;
+    const itemWidth = clipboardItem.width || 60;
+    const itemHeight = clipboardItem.height || 60;
+
+    // Get click position
+    const posX = contextMenuState.relativePosition.x;
+    const posY = contextMenuState.relativePosition.y;
+
+    // First subtract half the item size to center it at the click position
+    const centerX = posX - itemWidth / 2;
+    const centerY = posY - itemHeight / 2;
+
+    // Then apply grid snapping if enabled
+    let finalX = centerX;
+    let finalY = centerY;
 
     if (snapToGrid) {
-      const { gridSize } = document.stage;
-      posX = Math.round(posX / gridSize) * gridSize;
-      posY = Math.round(posY / gridSize) * gridSize;
+      finalX = Math.round(centerX / gridSize) * gridSize;
+      finalY = Math.round(centerY / gridSize) * gridSize;
     }
 
     // Create a new item based on the clipboard item but with a new ID
@@ -91,8 +113,8 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
       ...clipboardItem,
       id: crypto.randomUUID(),
       position: {
-        x: posX - 30, // Center item on click
-        y: posY - 30,
+        x: finalX,
+        y: finalY,
       },
     };
 
@@ -156,7 +178,12 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
     >
       {/* Grid lines - only show when showGrid is true */}
       {showGrid && (
-        <div className={styles.gridContainer}>{/* Grid implementation */}</div>
+        <div
+          className={styles.gridContainer}
+          style={{
+            backgroundSize: `${document.stage.gridSize}px ${document.stage.gridSize}px`,
+          }}
+        />
       )}
 
       {/* Stage items */}
