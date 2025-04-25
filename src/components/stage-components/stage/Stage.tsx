@@ -6,7 +6,7 @@ import { MenuItemOrDivider } from "../../common/ContextMenu";
 import { useClipboard } from "../../../context/ClipboardContext";
 import { useStageState } from "./hooks/useStageState";
 import styles from "./Stage.module.scss";
-import React, { useRef, useCallback } from "react";
+import React, { useRef, useCallback, useState } from "react";
 
 interface StageProps {
   showGrid: boolean;
@@ -36,6 +36,20 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
   } = actions;
 
   const stageRef = useRef<HTMLDivElement>(null);
+
+  // Track current mouse position within the stage
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+  // Handle mouse move to track cursor position
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (stageRef.current) {
+      const rect = stageRef.current.getBoundingClientRect();
+      setMousePosition({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      });
+    }
+  }, []);
 
   // Clear all items from stage
   const handleClearStage = () => {
@@ -272,20 +286,26 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
           console.log("Paste triggered");
           e.preventDefault();
 
-          // Get current mouse position or use stage center if not available
-          let pastePosition;
-          if (stageRef.current) {
-            const rect = stageRef.current.getBoundingClientRect();
-            pastePosition = {
-              x: rect.width / 2,
-              y: rect.height / 2,
-            };
-          }
+          // Use current mouse position for pasting
+          if (contextMenuState) {
+            // Check if mouse position is within stage bounds
+            const isInBounds =
+              mousePosition.x >= 0 &&
+              mousePosition.x <= document.stage.width &&
+              mousePosition.y >= 0 &&
+              mousePosition.y <= document.stage.height;
 
-          // Update context menu state with the position
-          if (pastePosition && contextMenuState) {
-            // Create a temporary position for paste operation
-            contextMenuState.relativePosition = pastePosition;
+            if (isInBounds) {
+              // Use the current mouse position if in bounds
+              contextMenuState.relativePosition = { ...mousePosition };
+            } else {
+              // Use center of stage if cursor is outside bounds
+              contextMenuState.relativePosition = {
+                x: document.stage.width / 2,
+                y: document.stage.height / 2,
+              };
+            }
+
             handlePasteItem();
           }
         }
@@ -299,6 +319,8 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
       hasClipboardItem,
       handlePasteItem,
       contextMenuState,
+      mousePosition,
+      document.stage,
     ]
   );
 
@@ -318,6 +340,7 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
         onClick={handleStageClick}
         onContextMenu={handleContextMenu}
         onKeyDown={handleKeyDown}
+        onMouseMove={handleMouseMove}
       >
         {/* Grid lines - only show when showGrid is true */}
         {showGrid && (

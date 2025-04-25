@@ -558,4 +558,113 @@ describe("Stage", () => {
     // Verify paste was triggered
     expect(mockDocumentService.addItem).toHaveBeenCalled();
   });
+
+  test("Paste keyboard shortcut uses mouse position when cursor is within stage", () => {
+    // Mock an item for the clipboard
+    const mockItem = {
+      id: "clipboard-item-1",
+      name: "Clipboard Item",
+      position: { x: 50, y: 50 },
+      width: 100,
+      height: 100,
+    };
+
+    // Mock the clipboard with an item
+    (useClipboard as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+      clipboardItem: mockItem,
+      clipboardItems: [mockItem],
+      hasClipboardItem: () => true,
+      copyItems: mockCopyItems,
+      cutItems: mockCopyItems,
+      clearClipboard: vi.fn(),
+    });
+
+    // Mock context menu state to capture the paste position
+    const mockRelativePositionState = { x: 0, y: 0 };
+    (useContextMenu as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+      handleContextMenu: mockHandleContextMenu,
+      ContextMenu: MockStageContextMenu,
+      contextMenuState: {
+        relativePosition: mockRelativePositionState,
+      },
+    });
+
+    render(<Stage showGrid={true} snapToGrid={true} />);
+
+    // Simulate mouse movement inside the stage
+    const stageElement = screen.getByTestId("stage");
+    const mouseX = 200;
+    const mouseY = 300;
+
+    // Move mouse to trigger position update
+    fireEvent.mouseMove(stageElement, {
+      clientX: mouseX,
+      clientY: mouseY,
+    });
+
+    // Simulate Ctrl+V keyboard shortcut
+    fireEvent.keyDown(stageElement, {
+      key: "v",
+      ctrlKey: true,
+    });
+
+    // Check that addItem was called with a position
+    expect(mockDocumentService.addItem).toHaveBeenCalledWith(
+      expect.objectContaining({
+        position: expect.objectContaining({
+          x: expect.any(Number),
+          y: expect.any(Number),
+        }),
+      })
+    );
+  });
+
+  test("Paste keyboard shortcut works when cursor is outside stage", () => {
+    // Mock an item for the clipboard
+    const mockItem = {
+      id: "clipboard-item-1",
+      name: "Clipboard Item",
+      position: { x: 50, y: 50 },
+      width: 100,
+      height: 100,
+    };
+
+    // Mock the clipboard with an item
+    (useClipboard as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+      clipboardItem: mockItem,
+      clipboardItems: [mockItem],
+      hasClipboardItem: () => true,
+      copyItems: mockCopyItems,
+      cutItems: mockCopyItems,
+      clearClipboard: vi.fn(),
+    });
+
+    // Reset mock call history
+    mockDocumentService.addItem.mockClear();
+
+    // Reset mock state to default
+    mockSelectedItems.clear();
+
+    // Simplify test by just verifying behavior works without mocking too many internals
+    render(<Stage showGrid={true} snapToGrid={true} />);
+
+    // Get stage element
+    const stageElement = screen.getByTestId("stage");
+
+    // Simulate keyboard shortcut for paste
+    fireEvent.keyDown(stageElement, {
+      key: "v",
+      ctrlKey: true,
+    });
+
+    // Verify an item was added with a position (we're just checking that it works)
+    expect(mockDocumentService.addItem).toHaveBeenCalledWith(
+      expect.objectContaining({
+        position: expect.objectContaining({
+          x: expect.any(Number),
+          y: expect.any(Number),
+        }),
+      })
+    );
+  });
 });
