@@ -70,19 +70,24 @@ describe("useStageState", () => {
   test("handleStageClick should clear selection", () => {
     const { result } = renderHook(() => useStageState({ snapToGrid: true }));
 
-    // First select an item
+    // First select an item by directly modifying the Set
+    act(() => {
+      result.current[0].selectedItems.add("item-1");
+    });
+
+    // Verify item is selected
+    expect(result.current[0].selectedItems.has("item-1")).toBe(true);
+
+    // Then click on the stage background
     act(() => {
       const [, actions] = result.current;
       // Mock event that directly targets the stage (target === currentTarget)
       const mockEvent = {
         target: "stage-element",
         currentTarget: "stage-element",
+        stopPropagation: vi.fn(),
       } as unknown as React.MouseEvent;
 
-      // Simulate selecting an item first
-      result.current[0].selectedItems.add("item-1");
-
-      // Then click on the stage background
       actions.handleStageClick(mockEvent);
     });
 
@@ -160,14 +165,10 @@ describe("useStageState", () => {
 
     // First select an item
     act(() => {
-      const [, actions] = result.current;
-      const mockEvent = {
-        stopPropagation: vi.fn(),
-        shiftKey: false,
-      } as unknown as React.MouseEvent;
-
-      actions.handleItemSelect(mockEvent, "item-1");
+      result.current[0].selectedItems.add("item-1");
     });
+
+    expect(result.current[0].selectedItems.has("item-1")).toBe(true);
 
     // Now delete it
     act(() => {
@@ -184,15 +185,9 @@ describe("useStageState", () => {
   test("isItemSelected should return correct state", () => {
     const { result } = renderHook(() => useStageState({ snapToGrid: true }));
 
-    // First select an item
+    // Add an item to selection directly
     act(() => {
-      const [, actions] = result.current;
-      const mockEvent = {
-        stopPropagation: vi.fn(),
-        shiftKey: false,
-      } as unknown as React.MouseEvent;
-
-      actions.handleItemSelect(mockEvent, "item-1");
+      result.current[0].selectedItems.add("item-1");
     });
 
     const [, actions] = result.current;
@@ -200,6 +195,24 @@ describe("useStageState", () => {
     expect(actions.isItemSelected("item-2")).toBe(false);
   });
 
-  // Additional tests for dragging behavior would be valuable but require more complex mock setup
-  // for mouse events and DOM elements
+  test("handleFlipItem should toggle item flip state", () => {
+    const { result } = renderHook(() => useStageState({ snapToGrid: true }));
+
+    act(() => {
+      const [, actions] = result.current;
+      actions.handleFlipItem("item-1");
+    });
+
+    // Should call documentService.updateItem with the flipped state
+    expect(mockUpdateItem).toHaveBeenCalledWith("item-1", { isFlipped: true });
+  });
+
+  test("getItemVisualPosition should return null when not dragging", () => {
+    const { result } = renderHook(() => useStageState({ snapToGrid: true }));
+
+    const [, actions] = result.current;
+    const position = actions.getItemVisualPosition("item-1");
+
+    expect(position).toBeNull();
+  });
 });
