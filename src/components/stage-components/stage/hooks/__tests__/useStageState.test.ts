@@ -45,6 +45,26 @@ describe("useStageState", () => {
     removeItem: mockRemoveItem,
   };
 
+  // Create a mock DOM element with the necessary methods
+  const createMockElement = () => {
+    const mockElement = {
+      focus: vi.fn(),
+      getBoundingClientRect: vi.fn().mockReturnValue({
+        left: 50,
+        top: 50,
+        width: 100,
+        height: 100,
+      }),
+      closest: vi.fn().mockImplementation((selector) => {
+        if (selector === "[data-stage]") {
+          return mockElement; // Return itself when looking for the stage element
+        }
+        return null;
+      }),
+    };
+    return mockElement;
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
 
@@ -100,9 +120,12 @@ describe("useStageState", () => {
 
     act(() => {
       const [, actions] = result.current;
+      const mockElement = createMockElement();
       const mockEvent = {
         stopPropagation: vi.fn(),
         shiftKey: false,
+        target: mockElement,
+        preventDefault: vi.fn(),
       } as unknown as React.MouseEvent;
 
       actions.handleItemSelect(mockEvent, "item-1");
@@ -119,9 +142,12 @@ describe("useStageState", () => {
     // First select an item without shift
     act(() => {
       const [, actions] = result.current;
+      const mockElement = createMockElement();
       const mockEvent = {
         stopPropagation: vi.fn(),
         shiftKey: false,
+        target: mockElement,
+        preventDefault: vi.fn(),
       } as unknown as React.MouseEvent;
 
       actions.handleItemSelect(mockEvent, "item-1");
@@ -130,9 +156,12 @@ describe("useStageState", () => {
     // Now toggle another item with shift key
     act(() => {
       const [, actions] = result.current;
+      const mockElement = createMockElement();
       const mockEvent = {
         stopPropagation: vi.fn(),
         shiftKey: true,
+        target: mockElement,
+        preventDefault: vi.fn(),
       } as unknown as React.MouseEvent;
 
       actions.handleItemSelect(mockEvent, "item-2");
@@ -146,9 +175,12 @@ describe("useStageState", () => {
     // Toggle one off with shift key
     act(() => {
       const [, actions] = result.current;
+      const mockElement = createMockElement();
       const mockEvent = {
         stopPropagation: vi.fn(),
         shiftKey: true,
+        target: mockElement,
+        preventDefault: vi.fn(),
       } as unknown as React.MouseEvent;
 
       actions.handleItemSelect(mockEvent, "item-1");

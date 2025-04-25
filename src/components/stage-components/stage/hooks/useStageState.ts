@@ -103,6 +103,14 @@ export function useStageState({
       }
 
       setSelectedItems(newSelectedItems);
+
+      // Focus the stage element to enable keyboard shortcuts
+      const stageElement = (e.target as HTMLElement).closest(
+        "[data-stage]"
+      ) as HTMLElement;
+      if (stageElement) {
+        stageElement.focus();
+      }
     },
     [selectedItems]
   );
@@ -126,6 +134,14 @@ export function useStageState({
       // This preserves multi-selection when starting to drag a selected item
       if (!selectedItems.has(itemId)) {
         handleItemSelect(e, itemId);
+      } else {
+        // If the item is already selected, still focus the stage for keyboard shortcuts
+        const stageElement = (e.currentTarget as HTMLElement).closest(
+          "[data-stage]"
+        ) as HTMLElement;
+        if (stageElement) {
+          stageElement.focus();
+        }
       }
 
       // Calculate offset from the mouse to the item's position

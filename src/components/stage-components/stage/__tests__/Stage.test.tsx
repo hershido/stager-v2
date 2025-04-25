@@ -111,9 +111,11 @@ describe("Stage", () => {
 
   // Mock clipboard functions
   const mockHasClipboardItem = vi.fn().mockReturnValue(false);
+  const mockCopyItems = vi.fn();
   const mockClipboardFunctions = {
     clipboardItem: null,
     hasClipboardItem: mockHasClipboardItem,
+    copyItems: mockCopyItems,
   };
 
   // Mock stage state
@@ -301,6 +303,63 @@ describe("Stage", () => {
     expect(useStageState).toHaveBeenCalledWith({ snapToGrid: true });
   });
 
+  test("Ctrl+C keyboard shortcut copies selected items", () => {
+    // Setup selected items
+    mockSelectedItems.add("item-1");
+    mockSelectedItems.add("item-2");
+
+    // Render the stage
+    render(<Stage showGrid={true} snapToGrid={true} />);
+
+    const stageElement = screen.getByTestId("stage");
+
+    // Focus the stage element first
+    stageElement.focus();
+
+    // Test Copy (Ctrl+C)
+    fireEvent.keyDown(stageElement, { key: "c", ctrlKey: true });
+
+    // Verify copy was called with the selected items
+    expect(mockCopyItems).toHaveBeenCalledTimes(1);
+    expect(mockCopyItems).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "item-1" }),
+        expect.objectContaining({ id: "item-2" }),
+      ])
+    );
+
+    // Clean up
+    mockSelectedItems.clear();
+  });
+
+  test("Ctrl+C keyboard shortcut copies a single selected item", () => {
+    // Reset mockCopyItems call count
+    mockCopyItems.mockClear();
+
+    // Setup with a single selected item
+    mockSelectedItems.add("item-1");
+
+    // Render the stage
+    render(<Stage showGrid={true} snapToGrid={true} />);
+
+    const stageElement = screen.getByTestId("stage");
+
+    // Focus the stage element first
+    stageElement.focus();
+
+    // Test Copy (Ctrl+C)
+    fireEvent.keyDown(stageElement, { key: "c", ctrlKey: true });
+
+    // Verify copy was called with one item
+    expect(mockCopyItems).toHaveBeenCalledTimes(1);
+    expect(mockCopyItems).toHaveBeenCalledWith([
+      expect.objectContaining({ id: "item-1" }),
+    ]);
+
+    // Clean up
+    mockSelectedItems.clear();
+  });
+
   // NEW TESTS FOR DELETION
 
   test("pressing Delete key calls handleDeleteItem for selected items", () => {
@@ -312,6 +371,10 @@ describe("Stage", () => {
 
     // Simulate Delete key press on the stage
     const stageElement = screen.getByTestId("stage");
+
+    // Focus the stage element first
+    stageElement.focus();
+
     fireEvent.keyDown(stageElement, { key: "Delete" });
 
     // Verify that handleDeleteItem was called for each selected item
@@ -431,6 +494,31 @@ describe("Stage", () => {
     // The deleted item should not be rendered anymore
     expect(screen.queryByTestId("stage-item-item-1")).not.toBeInTheDocument();
     expect(screen.getByTestId("stage-item-item-2")).toBeInTheDocument();
+
+    // Clean up
+    mockSelectedItems.clear();
+  });
+
+  test("pressing Delete key deletes a single selected item", () => {
+    // Clear previous mock calls
+    mockHandleDeleteItem.mockClear();
+
+    // Setup with a single selected item
+    mockSelectedItems.add("item-1");
+
+    render(<Stage showGrid={true} snapToGrid={true} />);
+
+    // Simulate Delete key press on the stage
+    const stageElement = screen.getByTestId("stage");
+
+    // Focus the stage element first
+    stageElement.focus();
+
+    fireEvent.keyDown(stageElement, { key: "Delete" });
+
+    // Verify that handleDeleteItem was called for the selected item
+    expect(mockHandleDeleteItem).toHaveBeenCalledTimes(1);
+    expect(mockHandleDeleteItem).toHaveBeenCalledWith("item-1");
 
     // Clean up
     mockSelectedItems.clear();

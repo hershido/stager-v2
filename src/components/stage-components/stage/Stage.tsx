@@ -15,7 +15,8 @@ interface StageProps {
 
 export function Stage({ showGrid, snapToGrid }: StageProps) {
   const { document, documentService } = useDocumentService();
-  const { clipboardItem, clipboardItems, hasClipboardItem } = useClipboard();
+  const { clipboardItem, clipboardItems, hasClipboardItem, copyItems } =
+    useClipboard();
 
   // Use the stage state hook
   const [state, actions] = useStageState({ snapToGrid });
@@ -39,14 +40,37 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
   // Handle keyboard events
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
+      console.log(
+        "KeyDown event",
+        e.key,
+        "selected items size:",
+        selectedItems.size
+      );
+
       // Delete key - delete selected items
       if (e.key === "Delete" || e.key === "Backspace") {
+        console.log("Delete triggered, items:", Array.from(selectedItems));
         selectedItems.forEach((id) => {
           handleDeleteItem(id);
         });
       }
+
+      // Check for keyboard shortcuts with Control/Command
+      const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+
+      if (isCtrlOrCmd) {
+        // Copy - Ctrl/Cmd+C
+        if (e.key === "c" && selectedItems.size > 0) {
+          console.log("Copy triggered, items:", Array.from(selectedItems));
+          e.preventDefault();
+          const itemsToCopy = document.items.filter((item) =>
+            selectedItems.has(item.id)
+          );
+          copyItems(itemsToCopy);
+        }
+      }
     },
-    [selectedItems, handleDeleteItem]
+    [selectedItems, handleDeleteItem, document.items, copyItems]
   );
 
   // Clear all items from stage
