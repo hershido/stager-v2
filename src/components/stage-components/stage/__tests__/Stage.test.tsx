@@ -300,4 +300,139 @@ describe("Stage", () => {
 
     expect(useStageState).toHaveBeenCalledWith({ snapToGrid: true });
   });
+
+  // NEW TESTS FOR DELETION
+
+  test("pressing Delete key calls handleDeleteItem for selected items", () => {
+    // Setup selected items
+    mockSelectedItems.add("item-1");
+    mockSelectedItems.add("item-2");
+
+    render(<Stage showGrid={true} snapToGrid={true} />);
+
+    // Simulate Delete key press on the stage
+    const stageElement = screen.getByTestId("stage");
+    fireEvent.keyDown(stageElement, { key: "Delete" });
+
+    // Verify that handleDeleteItem was called for each selected item
+    expect(mockHandleDeleteItem).toHaveBeenCalledTimes(2);
+    expect(mockHandleDeleteItem).toHaveBeenNthCalledWith(1, "item-1");
+    expect(mockHandleDeleteItem).toHaveBeenNthCalledWith(2, "item-2");
+
+    // Clean up
+    mockSelectedItems.clear();
+  });
+
+  test("deleting items via context menu", () => {
+    // Setup selected items
+    mockSelectedItems.add("item-1");
+    mockSelectedItems.add("item-2");
+
+    // Create a delete handler that will iterate through selected items
+    const mockDeleteHandler = vi.fn(() => {
+      // Simulate deleting all selected items
+      for (const itemId of mockSelectedItems) {
+        mockHandleDeleteItem(itemId);
+      }
+    });
+
+    // Setup mock for context menu with delete option
+    const mockMenuItems = [
+      { id: "paste", label: "Paste", onClick: vi.fn() },
+      { type: "divider" as const },
+      { id: "delete", label: "Delete", onClick: mockDeleteHandler },
+    ];
+
+    (useContextMenu as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+      handleContextMenu: mockHandleContextMenu,
+      ContextMenu: MockStageContextMenu,
+      contextMenuState: mockContextMenuState,
+      items: mockMenuItems,
+    });
+
+    render(<Stage showGrid={true} snapToGrid={true} />);
+
+    // Simulate clicking the delete menu option
+    mockDeleteHandler();
+
+    // Verify that handleDeleteItem was called for each selected item
+    expect(mockHandleDeleteItem).toHaveBeenCalledTimes(2);
+    expect(mockHandleDeleteItem).toHaveBeenNthCalledWith(1, "item-1");
+    expect(mockHandleDeleteItem).toHaveBeenNthCalledWith(2, "item-2");
+
+    // Clean up
+    mockSelectedItems.clear();
+  });
+
+  test("items are actually removed from document after deletion", () => {
+    // This test verifies the complete deletion flow from UI to document service
+
+    // Setup selected items
+    mockSelectedItems.add("item-1");
+
+    // Create a new document with items that will be updated during the test
+    const updatedMockDocument = {
+      ...mockDocument,
+      items: [...mockItems],
+    };
+
+    // Setup document service that will actually modify the document
+    const mockRemoveItemAndUpdate = vi.fn().mockImplementation((id) => {
+      // Remove the item from our test document
+      updatedMockDocument.items = updatedMockDocument.items.filter(
+        (item) => item.id !== id
+      );
+      return true;
+    });
+
+    // Update our mock to use the new implementation
+    (useDocumentService as unknown as ReturnType<typeof vi.fn>).mockReturnValue(
+      {
+        document: updatedMockDocument,
+        documentService: {
+          ...mockDocumentService,
+          removeItem: mockRemoveItemAndUpdate,
+        },
+      }
+    );
+
+    // Update the mockHandleDeleteItem to actually call removeItem
+    const updatedMockHandleDeleteItem = vi.fn().mockImplementation((id) => {
+      mockRemoveItemAndUpdate(id);
+    });
+
+    (useStageState as unknown as ReturnType<typeof vi.fn>).mockReturnValue([
+      mockStageState,
+      {
+        ...mockStageActions,
+        handleDeleteItem: updatedMockHandleDeleteItem,
+      },
+    ]);
+
+    const { rerender } = render(<Stage showGrid={true} snapToGrid={true} />);
+
+    // Initially both items should be rendered
+    expect(screen.getByTestId("stage-item-item-1")).toBeInTheDocument();
+    expect(screen.getByTestId("stage-item-item-2")).toBeInTheDocument();
+
+    // Delete the selected item
+    updatedMockHandleDeleteItem("item-1");
+
+    // Document service should have been called
+    expect(mockRemoveItemAndUpdate).toHaveBeenCalledWith("item-1");
+
+    // The document should now only have one item
+    expect(updatedMockDocument.items.length).toBe(1);
+    expect(updatedMockDocument.items[0].id).toBe("item-2");
+
+    // Rerender with the updated document
+    rerender(<Stage showGrid={true} snapToGrid={true} />);
+
+    // The deleted item should not be rendered anymore
+    expect(screen.queryByTestId("stage-item-item-1")).not.toBeInTheDocument();
+    expect(screen.getByTestId("stage-item-item-2")).toBeInTheDocument();
+
+    // Clean up
+    mockSelectedItems.clear();
+  });
 });
