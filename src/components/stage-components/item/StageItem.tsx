@@ -5,6 +5,11 @@ import { useClipboard } from "../../../context/ClipboardContext";
 import clsx from "clsx";
 import styles from "./StageItem.module.scss";
 
+// Icon component for keyboard shortcuts
+const ShortcutIcon = ({ children }: { children: React.ReactNode }) => (
+  <span className={styles.shortcutIcon}>{children}</span>
+);
+
 interface StageItemProps {
   item: StageItemType;
   isDragged: boolean;
@@ -81,11 +86,21 @@ export function StageItem({
     {
       id: "copy",
       label: "Copy",
+      shortcut: (
+        <>
+          <ShortcutIcon>⌘</ShortcutIcon>C
+        </>
+      ),
       onClick: handleCopyItems,
     },
     {
       id: "cut",
       label: "Cut",
+      shortcut: (
+        <>
+          <ShortcutIcon>⌘</ShortcutIcon>X
+        </>
+      ),
       onClick: handleCutItems,
     },
     { type: "divider" as const },
@@ -97,6 +112,7 @@ export function StageItem({
     {
       id: "delete",
       label: "Delete",
+      shortcut: "Del",
       onClick: handleDeleteItems,
     },
   ];

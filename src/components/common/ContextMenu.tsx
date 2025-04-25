@@ -7,6 +7,7 @@ export interface MenuItem {
   label: string;
   onClick: () => void;
   disabled?: boolean;
+  shortcut?: ReactNode;
 }
 
 export type MenuItemOrDivider = MenuItem | { type: "divider" };
@@ -100,7 +101,12 @@ export function ContextMenu({
                   }
                 }}
               >
-                {item.label}
+                <span className={styles.menuItemLabel}>{item.label}</span>
+                {item.shortcut && (
+                  <span className={styles.menuItemShortcut}>
+                    {item.shortcut}
+                  </span>
+                )}
               </button>
             ) : (
               <div key={`divider-${index}`} className={styles.divider}></div>

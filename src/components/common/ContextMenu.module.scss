@@ -31,7 +31,9 @@
 }
 
 .menuItem {
-  display: block;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   width: 100%;
   text-align: left;
   padding: 8px 12px;
@@ -53,6 +55,20 @@
       background-color: transparent;
     }
   }
+}
+
+.menuItemLabel {
+  flex-grow: 1;
+}
+
+.menuItemShortcut {
+  margin-left: 16px;
+  color: #888;
+  font-size: 12px;
+  text-align: right;
+  font-family: monospace;
+  display: flex;
+  align-items: center;
 }
 
 .divider {

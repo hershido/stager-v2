@@ -78,3 +78,11 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+.shortcutIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  margin-right: 2px;
+}

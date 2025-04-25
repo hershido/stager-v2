@@ -8,6 +8,11 @@ import { useStageState } from "./hooks/useStageState";
 import styles from "./Stage.module.scss";
 import React, { useRef, useCallback, useState } from "react";
 
+// Icon component for keyboard shortcuts
+const ShortcutIcon = ({ children }: { children: React.ReactNode }) => (
+  <span className={styles.shortcutIcon}>{children}</span>
+);
+
 interface StageProps {
   showGrid: boolean;
   snapToGrid: boolean;
@@ -113,6 +118,11 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
           {
             id: "paste",
             label: "Paste",
+            shortcut: (
+              <>
+                <ShortcutIcon>⌘</ShortcutIcon>V
+              </>
+            ),
             onClick: () => handlePasteItem(), // Will be defined after contextMenuState
           } as MenuItemOrDivider,
         ]
