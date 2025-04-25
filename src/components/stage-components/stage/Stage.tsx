@@ -16,6 +16,9 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
   const { document, documentService } = useDocumentService();
   const { clipboardItem, hasClipboardItem } = useClipboard();
 
+  // Selection state
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+
   const [isDragging, setIsDragging] = useState(false);
   const [draggedItem, setDraggedItem] = useState<string | null>(null);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -25,11 +28,43 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
     y: number;
   } | null>(null);
 
+  // Clear selection when clicking on stage background
+  const handleStageClick = (e: React.MouseEvent) => {
+    // Only clear if clicking directly on stage (not on an item)
+    if (e.target === e.currentTarget) {
+      setSelectedItems(new Set());
+    }
+  };
+
+  // Handle item selection
+  const handleItemSelect = (e: React.MouseEvent, itemId: string) => {
+    e.stopPropagation(); // Prevent stage click handler from firing
+
+    // Get current selection
+    const newSelectedItems = new Set(selectedItems);
+
+    // Multi-select with Shift key
+    if (e.shiftKey) {
+      if (newSelectedItems.has(itemId)) {
+        newSelectedItems.delete(itemId);
+      } else {
+        newSelectedItems.add(itemId);
+      }
+    } else {
+      // Single select (replace current selection)
+      newSelectedItems.clear();
+      newSelectedItems.add(itemId);
+    }
+
+    setSelectedItems(newSelectedItems);
+  };
+
   // Clear all items from stage
   const handleClearStage = () => {
     [...document.items].forEach((item) => {
       documentService.removeItem(item.id);
     });
+    setSelectedItems(new Set()); // Clear selection when stage is cleared
   };
 
   // Add a new item at click position
@@ -140,6 +175,17 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
     const item = document.items.find((item) => item.id === itemId);
     if (!item) return;
 
+    // If shift key is pressed, handle selection instead of dragging
+    if (e.shiftKey) {
+      handleItemSelect(e, itemId);
+      return;
+    }
+
+    // If item isn't already selected, select it
+    if (!selectedItems.has(itemId)) {
+      handleItemSelect(e, itemId);
+    }
+
     // Calculate offset from the mouse to the item's position
     const rect = (e.target as HTMLElement).getBoundingClientRect();
     setOffset({
@@ -223,6 +269,13 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
   // Delete an item
   const handleDeleteItem = (itemId: string) => {
     documentService.removeItem(itemId);
+
+    // Also remove from selection if present
+    if (selectedItems.has(itemId)) {
+      const newSelectedItems = new Set(selectedItems);
+      newSelectedItems.delete(itemId);
+      setSelectedItems(newSelectedItems);
+    }
   };
 
   // Flip an item horizontally
@@ -244,6 +297,7 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
         backgroundColor: document.stage.backgroundColor,
       }}
       onContextMenu={handleContextMenu}
+      onClick={handleStageClick}
     >
       {/* Grid lines - only show when showGrid is true */}
       {showGrid && (
@@ -256,6 +310,7 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
           key={item.id}
           item={item}
           isDragged={item.id === draggedItem}
+          isSelected={selectedItems.has(item.id)}
           dragVisualPosition={dragVisualPosition}
           onMouseDown={handleMouseDown}
           onDelete={handleDeleteItem}

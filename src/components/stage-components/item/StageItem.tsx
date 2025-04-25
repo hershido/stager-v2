@@ -2,11 +2,13 @@ import { StageItem as StageItemType } from "../../../types/document";
 import { useContextMenu } from "../../hooks/useContextMenu";
 import { MenuItemOrDivider } from "../../common/ContextMenu";
 import { useClipboard } from "../../../context/ClipboardContext";
+import clsx from "clsx";
 import styles from "./StageItem.module.scss";
 
 interface StageItemProps {
   item: StageItemType;
   isDragged: boolean;
+  isSelected?: boolean;
   dragVisualPosition: { x: number; y: number } | null;
   onMouseDown: (e: React.MouseEvent, itemId: string) => void;
   onDelete: (itemId: string) => void;
@@ -16,6 +18,7 @@ interface StageItemProps {
 export function StageItem({
   item,
   isDragged,
+  isSelected = false,
   dragVisualPosition,
   onMouseDown,
   onDelete,
@@ -79,7 +82,9 @@ export function StageItem({
   return (
     <>
       <div
-        className={styles.stageItem}
+        className={clsx(styles.stageItem, {
+          [styles.selected]: isSelected,
+        })}
         style={style}
         onMouseDown={(e) => onMouseDown(e, item.id)}
         onContextMenu={handleContextMenu}

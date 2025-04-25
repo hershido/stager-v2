@@ -1,4 +1,5 @@
-import React, { ReactNode, useEffect, useRef } from "react";
+import { ReactNode, useEffect, useRef } from "react";
+import clsx from "clsx";
 import styles from "./ContextMenu.module.scss";
 
 export interface MenuItem {
@@ -89,9 +90,9 @@ export function ContextMenu({
             isMenuItem(item) ? (
               <button
                 key={item.id}
-                className={`${styles.menuItem} ${
-                  item.disabled ? styles.disabled : ""
-                }`}
+                className={clsx(styles.menuItem, {
+                  [styles.disabled]: item.disabled,
+                })}
                 onClick={() => {
                   if (!item.disabled) {
                     item.onClick();

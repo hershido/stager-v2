@@ -1,3 +1,4 @@
+import clsx from "clsx";
 import styles from "./StageControls.module.scss";
 
 interface StageControlsProps {
@@ -16,7 +17,9 @@ export function StageControls({
   return (
     <div className={styles.stageControls}>
       <div
-        className={`${styles.controlIcon} ${showGrid ? styles.active : ""}`}
+        className={clsx(styles.controlIcon, {
+          [styles.active]: showGrid,
+        })}
         onClick={onToggleGrid}
         title="Toggle Grid Visibility"
       >
@@ -25,7 +28,9 @@ export function StageControls({
         </span>
       </div>
       <div
-        className={`${styles.controlIcon} ${snapToGrid ? styles.active : ""}`}
+        className={clsx(styles.controlIcon, {
+          [styles.active]: snapToGrid,
+        })}
         onClick={onToggleSnap}
         title="Toggle Snap to Grid"
       >
