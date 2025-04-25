@@ -37,42 +37,6 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
 
   const stageRef = useRef<HTMLDivElement>(null);
 
-  // Handle keyboard events
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      console.log(
-        "KeyDown event",
-        e.key,
-        "selected items size:",
-        selectedItems.size
-      );
-
-      // Delete key - delete selected items
-      if (e.key === "Delete" || e.key === "Backspace") {
-        console.log("Delete triggered, items:", Array.from(selectedItems));
-        selectedItems.forEach((id) => {
-          handleDeleteItem(id);
-        });
-      }
-
-      // Check for keyboard shortcuts with Control/Command
-      const isCtrlOrCmd = e.ctrlKey || e.metaKey;
-
-      if (isCtrlOrCmd) {
-        // Copy - Ctrl/Cmd+C
-        if (e.key === "c" && selectedItems.size > 0) {
-          console.log("Copy triggered, items:", Array.from(selectedItems));
-          e.preventDefault();
-          const itemsToCopy = document.items.filter((item) =>
-            selectedItems.has(item.id)
-          );
-          copyItems(itemsToCopy);
-        }
-      }
-    },
-    [selectedItems, handleDeleteItem, document.items, copyItems]
-  );
-
   // Clear all items from stage
   const handleClearStage = () => {
     [...document.items].forEach((item) => {
@@ -123,8 +87,51 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
     documentService.addItem(newItem);
   };
 
-  // Paste an item from clipboard
-  const handlePasteItem = () => {
+  // Define menu items for the stage context menu
+  const stageMenuItems: MenuItemOrDivider[] = [
+    {
+      id: "add-item",
+      label: "Add Item",
+      onClick: handleAddItem,
+    },
+    ...(hasClipboardItem()
+      ? [
+          {
+            id: "paste",
+            label: "Paste",
+            onClick: () => handlePasteItem(), // Will be defined after contextMenuState
+          } as MenuItemOrDivider,
+        ]
+      : []),
+    { type: "divider" as const },
+    {
+      id: "clear",
+      label: "Clear Stage",
+      onClick: handleClearStage,
+      disabled: document.items.length === 0,
+    },
+  ];
+
+  // Use the context menu hook
+  const {
+    handleContextMenu,
+    ContextMenu: StageContextMenu,
+    contextMenuState,
+  } = useContextMenu({
+    items: stageMenuItems,
+    header: <div className={styles.contextMenuTitle}>Stage Options</div>,
+    onElementFilter: (target) => !!target.closest(`.${styles.stageItem}`),
+    computeRelativePosition: (e, element) => {
+      const rect = element.getBoundingClientRect();
+      return {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      };
+    },
+  });
+
+  // Paste an item from clipboard - moved after contextMenuState initialization
+  const handlePasteItem = useCallback(() => {
     if (!hasClipboardItem() || !contextMenuState.relativePosition) return;
 
     const { gridSize } = document.stage;
@@ -218,50 +225,82 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
 
       documentService.addItem(newItem);
     }
-  };
-
-  // Define menu items for the stage context menu
-  const stageMenuItems: MenuItemOrDivider[] = [
-    {
-      id: "add-item",
-      label: "Add Item",
-      onClick: handleAddItem,
-    },
-    ...(hasClipboardItem()
-      ? [
-          {
-            id: "paste",
-            label: "Paste",
-            onClick: handlePasteItem,
-          } as MenuItemOrDivider,
-        ]
-      : []),
-    { type: "divider" as const },
-    {
-      id: "clear",
-      label: "Clear Stage",
-      onClick: handleClearStage,
-      disabled: document.items.length === 0,
-    },
-  ];
-
-  // Use the context menu hook
-  const {
-    handleContextMenu,
-    ContextMenu: StageContextMenu,
+  }, [
+    clipboardItem,
+    clipboardItems,
+    hasClipboardItem,
+    document.stage,
+    documentService,
     contextMenuState,
-  } = useContextMenu({
-    items: stageMenuItems,
-    header: <div className={styles.contextMenuTitle}>Stage Options</div>,
-    onElementFilter: (target) => !!target.closest(`.${styles.stageItem}`),
-    computeRelativePosition: (e, element) => {
-      const rect = element.getBoundingClientRect();
-      return {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
-      };
+    snapToGrid,
+  ]);
+
+  // Handle keyboard events - moved below contextMenuState definition
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      console.log(
+        "KeyDown event",
+        e.key,
+        "selected items size:",
+        selectedItems.size
+      );
+
+      // Delete key - delete selected items
+      if (e.key === "Delete" || e.key === "Backspace") {
+        console.log("Delete triggered, items:", Array.from(selectedItems));
+        selectedItems.forEach((id) => {
+          handleDeleteItem(id);
+        });
+      }
+
+      // Check for keyboard shortcuts with Control/Command
+      const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+
+      if (isCtrlOrCmd) {
+        // Copy - Ctrl/Cmd+C
+        if (e.key === "c" && selectedItems.size > 0) {
+          console.log("Copy triggered, items:", Array.from(selectedItems));
+          e.preventDefault();
+          const itemsToCopy = document.items.filter((item) =>
+            selectedItems.has(item.id)
+          );
+          copyItems(itemsToCopy);
+        }
+
+        // Paste - Ctrl/Cmd+V
+        if (e.key === "v" && hasClipboardItem()) {
+          console.log("Paste triggered");
+          e.preventDefault();
+
+          // Get current mouse position or use stage center if not available
+          let pastePosition;
+          if (stageRef.current) {
+            const rect = stageRef.current.getBoundingClientRect();
+            pastePosition = {
+              x: rect.width / 2,
+              y: rect.height / 2,
+            };
+          }
+
+          // Update context menu state with the position
+          if (pastePosition && contextMenuState) {
+            // Create a temporary position for paste operation
+            contextMenuState.relativePosition = pastePosition;
+            handlePasteItem();
+          }
+        }
+      }
     },
-  });
+    [
+      selectedItems,
+      handleDeleteItem,
+      document.items,
+      copyItems,
+      hasClipboardItem,
+      handlePasteItem,
+      contextMenuState,
+    ]
+  );
 
   return (
     <>

@@ -523,4 +523,39 @@ describe("Stage", () => {
     // Clean up
     mockSelectedItems.clear();
   });
+
+  test("Ctrl+V keyboard shortcut pastes clipboard items", () => {
+    const mockItem = {
+      id: "clipboard-item-1",
+      name: "Clipboard Item",
+      position: { x: 50, y: 50 },
+      width: 100,
+      height: 100,
+    };
+
+    // Mock the clipboard with an item
+    (useClipboard as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+      clipboardItem: mockItem,
+      clipboardItems: [mockItem],
+      hasClipboardItem: () => true,
+      copyItems: mockCopyItems,
+      cutItems: mockCopyItems, // Reuse existing mock function
+      clearClipboard: vi.fn(), // Add a simple mock function
+    });
+
+    render(<Stage showGrid={true} snapToGrid={true} />);
+
+    // Create a mock stage element ref
+    const stageElement = screen.getByTestId("stage");
+
+    // Simulate Ctrl+V keyboard shortcut
+    fireEvent.keyDown(stageElement, {
+      key: "v",
+      ctrlKey: true,
+      metaKey: false,
+    });
+
+    // Verify paste was triggered
+    expect(mockDocumentService.addItem).toHaveBeenCalled();
+  });
 });
