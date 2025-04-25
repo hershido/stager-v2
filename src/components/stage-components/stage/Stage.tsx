@@ -275,66 +275,76 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
       constrainedY = Math.min(document.stage.height - itemHeight, snappedY);
     }
 
-    // Update the dragged item position
-    setDraggedItem(draggedItem);
-
     // Calculate movement delta from initial position
     const initialPos = initialItemPositions[draggedItem];
     if (!initialPos) return;
 
-    const deltaX = constrainedX - initialPos.x;
-    const deltaY = constrainedY - initialPos.y;
+    // Calculate the maximum delta all items can move without any going out of bounds
+    let maxDeltaX = constrainedX - initialPos.x;
+    let maxDeltaY = constrainedY - initialPos.y;
+
+    // Check constraints for all selected items to find most restrictive constraints
+    if (selectedItems.size > 1) {
+      Object.keys(initialItemPositions).forEach((id) => {
+        if (selectedItems.has(id)) {
+          const initialItemPos = initialItemPositions[id];
+          const currentItem = document.items.find((item) => item.id === id);
+
+          if (initialItemPos && currentItem) {
+            const itemWidth = currentItem.width || 60;
+            const itemHeight = currentItem.height || 60;
+
+            // Calculate max movement in each direction for this item
+            const itemMaxDeltaXPos =
+              document.stage.width - itemWidth - initialItemPos.x;
+            const itemMaxDeltaXNeg = -initialItemPos.x;
+            const itemMaxDeltaYPos =
+              document.stage.height - itemHeight - initialItemPos.y;
+            const itemMaxDeltaYNeg = -initialItemPos.y;
+
+            // If moving right and this item is more constrained, update maxDeltaX
+            if (maxDeltaX > 0 && itemMaxDeltaXPos < maxDeltaX) {
+              maxDeltaX = itemMaxDeltaXPos;
+            }
+
+            // If moving left and this item is more constrained, update maxDeltaX
+            if (maxDeltaX < 0 && itemMaxDeltaXNeg > maxDeltaX) {
+              maxDeltaX = itemMaxDeltaXNeg;
+            }
+
+            // If moving down and this item is more constrained, update maxDeltaY
+            if (maxDeltaY > 0 && itemMaxDeltaYPos < maxDeltaY) {
+              maxDeltaY = itemMaxDeltaYPos;
+            }
+
+            // If moving up and this item is more constrained, update maxDeltaY
+            if (maxDeltaY < 0 && itemMaxDeltaYNeg > maxDeltaY) {
+              maxDeltaY = itemMaxDeltaYNeg;
+            }
+          }
+        }
+      });
+    }
+
+    // Apply grid snapping to the maximum delta if enabled
+    if (snapToGrid) {
+      const { gridSize } = document.stage;
+      maxDeltaX = Math.round(maxDeltaX / gridSize) * gridSize;
+      maxDeltaY = Math.round(maxDeltaY / gridSize) * gridSize;
+    }
 
     // Update positions of all selected items
     const newPositions = { ...selectedItemsPositions };
 
     Object.keys(initialItemPositions).forEach((id) => {
-      if (id === draggedItem) {
-        newPositions[id] = { x: constrainedX, y: constrainedY };
-      } else if (selectedItems.has(id)) {
-        // Apply the same delta to other selected items
+      if (selectedItems.has(id)) {
         const initialItemPos = initialItemPositions[id];
         if (initialItemPos) {
-          const item = document.items.find((item) => item.id === id);
-          if (item) {
-            // Apply constraints to ensure items stay within stage boundaries
-            const newX = Math.max(
-              0,
-              Math.min(
-                document.stage.width - (item.width || 60),
-                initialItemPos.x + deltaX
-              )
-            );
-            const newY = Math.max(
-              0,
-              Math.min(
-                document.stage.height - (item.height || 60),
-                initialItemPos.y + deltaY
-              )
-            );
-
-            // Apply grid snapping if enabled
-            let finalX = newX;
-            let finalY = newY;
-
-            if (snapToGrid) {
-              const { gridSize } = document.stage;
-              finalX = Math.round(newX / gridSize) * gridSize;
-              finalY = Math.round(newY / gridSize) * gridSize;
-
-              // Final boundary check after snapping
-              finalX = Math.min(
-                document.stage.width - (item.width || 60),
-                finalX
-              );
-              finalY = Math.min(
-                document.stage.height - (item.height || 60),
-                finalY
-              );
-            }
-
-            newPositions[id] = { x: finalX, y: finalY };
-          }
+          // Apply the same constrained delta to all selected items
+          newPositions[id] = {
+            x: initialItemPos.x + maxDeltaX,
+            y: initialItemPos.y + maxDeltaY,
+          };
         }
       }
     });
