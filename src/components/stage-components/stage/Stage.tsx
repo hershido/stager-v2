@@ -304,22 +304,22 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
 
             // If moving right and this item is more constrained, update maxDeltaX
             if (maxDeltaX > 0 && itemMaxDeltaXPos < maxDeltaX) {
-              maxDeltaX = itemMaxDeltaXPos;
+              maxDeltaX = Math.floor(itemMaxDeltaXPos); // Use Math.floor to prevent protrusion
             }
 
             // If moving left and this item is more constrained, update maxDeltaX
             if (maxDeltaX < 0 && itemMaxDeltaXNeg > maxDeltaX) {
-              maxDeltaX = itemMaxDeltaXNeg;
+              maxDeltaX = Math.ceil(itemMaxDeltaXNeg); // Use Math.ceil to prevent protrusion
             }
 
             // If moving down and this item is more constrained, update maxDeltaY
             if (maxDeltaY > 0 && itemMaxDeltaYPos < maxDeltaY) {
-              maxDeltaY = itemMaxDeltaYPos;
+              maxDeltaY = Math.floor(itemMaxDeltaYPos); // Use Math.floor to prevent protrusion
             }
 
             // If moving up and this item is more constrained, update maxDeltaY
             if (maxDeltaY < 0 && itemMaxDeltaYNeg > maxDeltaY) {
-              maxDeltaY = itemMaxDeltaYNeg;
+              maxDeltaY = Math.ceil(itemMaxDeltaYNeg); // Use Math.ceil to prevent protrusion
             }
           }
         }
@@ -329,8 +329,80 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
     // Apply grid snapping to the maximum delta if enabled
     if (snapToGrid) {
       const { gridSize } = document.stage;
+
+      // First apply grid snapping
       maxDeltaX = Math.round(maxDeltaX / gridSize) * gridSize;
       maxDeltaY = Math.round(maxDeltaY / gridSize) * gridSize;
+
+      // Additional check to ensure items can precisely reach edges
+      // For items moving to the edge, allow them to reach exactly 0 or the edge
+      Object.keys(initialItemPositions).forEach((id) => {
+        if (selectedItems.has(id)) {
+          const initialItemPos = initialItemPositions[id];
+          const currentItem = document.items.find((item) => item.id === id);
+
+          if (initialItemPos && currentItem) {
+            const itemWidth = currentItem.width || 60;
+            const itemHeight = currentItem.height || 60;
+
+            // Calculate final positions after applying delta
+            const finalX = initialItemPos.x + maxDeltaX;
+            const finalY = initialItemPos.y + maxDeltaY;
+
+            // Check if very close to left edge
+            if (finalX <= gridSize && finalX > 0) {
+              // Allow exact alignment with edge
+              const adjustedDeltaX = -initialItemPos.x;
+              if (Math.abs(adjustedDeltaX - maxDeltaX) <= gridSize) {
+                maxDeltaX = adjustedDeltaX;
+              }
+            }
+
+            // Check if very close to top edge
+            if (finalY <= gridSize && finalY > 0) {
+              // Allow exact alignment with edge
+              const adjustedDeltaY = -initialItemPos.y;
+              if (Math.abs(adjustedDeltaY - maxDeltaY) <= gridSize) {
+                maxDeltaY = adjustedDeltaY;
+              }
+            }
+
+            // Check if very close to right edge
+            const rightEdge = document.stage.width - itemWidth;
+            if (
+              Math.abs(finalX - rightEdge) <= gridSize &&
+              finalX < document.stage.width
+            ) {
+              // Allow exact alignment with edge
+              const adjustedDeltaX = rightEdge - initialItemPos.x;
+              if (Math.abs(adjustedDeltaX - maxDeltaX) <= gridSize) {
+                // Ensure we don't exceed the boundary
+                maxDeltaX = Math.min(
+                  adjustedDeltaX,
+                  rightEdge - initialItemPos.x
+                );
+              }
+            }
+
+            // Check if very close to bottom edge
+            const bottomEdge = document.stage.height - itemHeight;
+            if (
+              Math.abs(finalY - bottomEdge) <= gridSize &&
+              finalY < document.stage.height
+            ) {
+              // Allow exact alignment with edge
+              const adjustedDeltaY = bottomEdge - initialItemPos.y;
+              if (Math.abs(adjustedDeltaY - maxDeltaY) <= gridSize) {
+                // Ensure we don't exceed the boundary
+                maxDeltaY = Math.min(
+                  adjustedDeltaY,
+                  bottomEdge - initialItemPos.y
+                );
+              }
+            }
+          }
+        }
+      });
     }
 
     // Update positions of all selected items
@@ -339,11 +411,29 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
     Object.keys(initialItemPositions).forEach((id) => {
       if (selectedItems.has(id)) {
         const initialItemPos = initialItemPositions[id];
-        if (initialItemPos) {
+        const item = document.items.find((item) => item.id === id);
+
+        if (initialItemPos && item) {
+          const itemWidth = item.width || 60;
+          const itemHeight = item.height || 60;
+
           // Apply the same constrained delta to all selected items
+          const newX = initialItemPos.x + maxDeltaX;
+          const newY = initialItemPos.y + maxDeltaY;
+
+          // Final boundary check to absolutely ensure nothing protrudes
+          const boundedX = Math.min(
+            document.stage.width - itemWidth,
+            Math.max(0, newX)
+          );
+          const boundedY = Math.min(
+            document.stage.height - itemHeight,
+            Math.max(0, newY)
+          );
+
           newPositions[id] = {
-            x: initialItemPos.x + maxDeltaX,
-            y: initialItemPos.y + maxDeltaY,
+            x: boundedX,
+            y: boundedY,
           };
         }
       }
