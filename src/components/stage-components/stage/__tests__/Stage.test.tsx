@@ -360,6 +360,84 @@ describe("Stage", () => {
     mockSelectedItems.clear();
   });
 
+  test("Ctrl+X keyboard shortcut cuts selected items", () => {
+    // Mock the cutItems function
+    const mockCutItems = vi.fn();
+    (useClipboard as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+      clipboardItem: null,
+      clipboardItems: [],
+      hasClipboardItem: mockHasClipboardItem,
+      copyItems: mockCopyItems,
+      cutItems: mockCutItems,
+    });
+
+    // Setup selected items
+    mockSelectedItems.add("item-1");
+    mockSelectedItems.add("item-2");
+
+    // Render the stage
+    render(<Stage showGrid={true} snapToGrid={true} />);
+
+    const stageElement = screen.getByTestId("stage");
+
+    // Focus the stage element first
+    stageElement.focus();
+
+    // Test Cut (Ctrl+X)
+    fireEvent.keyDown(stageElement, { key: "x", ctrlKey: true });
+
+    // Verify cut was called with the selected items and delete callback
+    expect(mockCutItems).toHaveBeenCalledTimes(1);
+    expect(mockCutItems).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "item-1" }),
+        expect.objectContaining({ id: "item-2" }),
+      ]),
+      mockHandleDeleteItem
+    );
+
+    // Clean up
+    mockSelectedItems.clear();
+  });
+
+  test("Ctrl+X keyboard shortcut cuts a single selected item", () => {
+    // Mock the cutItems function
+    const mockCutItems = vi.fn();
+    (useClipboard as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+      clipboardItem: null,
+      clipboardItems: [],
+      hasClipboardItem: mockHasClipboardItem,
+      copyItems: mockCopyItems,
+      cutItems: mockCutItems,
+    });
+
+    // Reset selected items
+    mockSelectedItems.clear();
+    // Setup with a single selected item
+    mockSelectedItems.add("item-1");
+
+    // Render the stage
+    render(<Stage showGrid={true} snapToGrid={true} />);
+
+    const stageElement = screen.getByTestId("stage");
+
+    // Focus the stage element first
+    stageElement.focus();
+
+    // Test Cut (Ctrl+X)
+    fireEvent.keyDown(stageElement, { key: "x", ctrlKey: true });
+
+    // Verify cut was called with one item and delete callback
+    expect(mockCutItems).toHaveBeenCalledTimes(1);
+    expect(mockCutItems).toHaveBeenCalledWith(
+      [expect.objectContaining({ id: "item-1" })],
+      mockHandleDeleteItem
+    );
+
+    // Clean up
+    mockSelectedItems.clear();
+  });
+
   // NEW TESTS FOR DELETION
 
   test("pressing Delete key calls handleDeleteItem for selected items", () => {

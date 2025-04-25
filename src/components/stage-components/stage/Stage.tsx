@@ -20,8 +20,13 @@ interface StageProps {
 
 export function Stage({ showGrid, snapToGrid }: StageProps) {
   const { document, documentService } = useDocumentService();
-  const { clipboardItem, clipboardItems, hasClipboardItem, copyItems } =
-    useClipboard();
+  const {
+    clipboardItem,
+    clipboardItems,
+    hasClipboardItem,
+    copyItems,
+    cutItems,
+  } = useClipboard();
 
   // Use the stage state hook
   const [state, actions] = useStageState({ snapToGrid });
@@ -291,6 +296,19 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
           copyItems(itemsToCopy);
         }
 
+        // Cut - Ctrl/Cmd+X
+        if (e.key === "x" && selectedItems.size > 0) {
+          console.log("Cut triggered, items:", Array.from(selectedItems));
+          e.preventDefault();
+          const itemsToCut = document.items.filter((item) =>
+            selectedItems.has(item.id)
+          );
+
+          // Use the cutItems function from the ClipboardContext
+          // This will copy to clipboard and then delete
+          cutItems(itemsToCut, handleDeleteItem);
+        }
+
         // Paste - Ctrl/Cmd+V
         if (e.key === "v" && hasClipboardItem()) {
           console.log("Paste triggered");
@@ -326,6 +344,7 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
       handleDeleteItem,
       document.items,
       copyItems,
+      cutItems,
       hasClipboardItem,
       handlePasteItem,
       contextMenuState,
