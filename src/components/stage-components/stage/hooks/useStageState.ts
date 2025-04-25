@@ -15,6 +15,14 @@ interface SelectedItemsPositions {
   [itemId: string]: Position | null;
 }
 
+// Add a new interface for the lasso rectangle
+interface LassoRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface StageStateProps {
   snapToGrid: boolean;
 }
@@ -30,6 +38,12 @@ export interface StageState {
   stageRect: DOMRect | null;
   initialItemPositions: DraggedItemsInitialState;
   selectedItemsPositions: SelectedItemsPositions;
+
+  // Lasso selection state
+  isLassoActive: boolean;
+  lassoStart: Position | null;
+  lassoEnd: Position | null;
+  lassoRect: LassoRect | null;
 }
 
 export interface StageStateActions {
@@ -42,6 +56,11 @@ export interface StageStateActions {
   handleMouseDown: (e: React.MouseEvent, itemId: string) => void;
   handleOverlayMouseMove: (e: React.MouseEvent) => void;
   handleOverlayMouseUp: () => void;
+
+  // Lasso selection actions
+  handleLassoStart: (e: React.MouseEvent) => void;
+  handleLassoMove: (e: React.MouseEvent) => void;
+  handleLassoEnd: () => void;
 
   // Item actions
   handleDeleteItem: (itemId: string) => void;
@@ -74,13 +93,23 @@ export function useStageState({
   const [selectedItemsPositions, setSelectedItemsPositions] =
     useState<SelectedItemsPositions>({});
 
-  // Clear selection when clicking on stage background
-  const handleStageClick = useCallback((e: React.MouseEvent) => {
-    // Only clear if clicking directly on stage (not on an item)
-    if (e.target === e.currentTarget) {
-      setSelectedItems(new Set());
-    }
-  }, []);
+  // Lasso selection state
+  const [isLassoActive, setIsLassoActive] = useState(false);
+  const [lassoStart, setLassoStart] = useState<Position | null>(null);
+  const [lassoEnd, setLassoEnd] = useState<Position | null>(null);
+  const [lassoRect, setLassoRect] = useState<LassoRect | null>(null);
+
+  // Clear selection when clicking on stage background (modified)
+  const handleStageClick = useCallback(
+    (e: React.MouseEvent) => {
+      // Only clear if clicking directly on stage (not on an item)
+      // and not starting a lasso selection
+      if (e.target === e.currentTarget && !isLassoActive) {
+        setSelectedItems(new Set());
+      }
+    },
+    [isLassoActive]
+  );
 
   // Handle item selection
   const handleItemSelect = useCallback(
@@ -466,6 +495,146 @@ export function useStageState({
     [isDragging, selectedItemsPositions]
   );
 
+  // Helper function to calculate lasso rectangle from start and end points
+  const calculateLassoRect = useCallback(
+    (start: Position, end: Position): LassoRect => {
+      const x = Math.min(start.x, end.x);
+      const y = Math.min(start.y, end.y);
+      const width = Math.abs(end.x - start.x);
+      const height = Math.abs(end.y - start.y);
+      return { x, y, width, height };
+    },
+    []
+  );
+
+  // Check if an item is inside the lasso rectangle
+  const isItemInLasso = useCallback(
+    (
+      item: { position: Position; width?: number; height?: number },
+      rect: LassoRect
+    ): boolean => {
+      const itemRight = item.position.x + (item.width || 60);
+      const itemBottom = item.position.y + (item.height || 60);
+      const rectRight = rect.x + rect.width;
+      const rectBottom = rect.y + rect.height;
+
+      // Check if the item overlaps with the lasso rectangle
+      return (
+        item.position.x < rectRight &&
+        itemRight > rect.x &&
+        item.position.y < rectBottom &&
+        itemBottom > rect.y
+      );
+    },
+    []
+  );
+
+  // Start lasso selection
+  const handleLassoStart = useCallback((e: React.MouseEvent) => {
+    // Only start lasso if clicking directly on the stage (not on an item)
+    if (e.target !== e.currentTarget) return;
+
+    // Skip if right-button
+    if (e.button === 2) return;
+
+    // Get the stage element's bounding rectangle
+    const currentStageRect = (
+      e.currentTarget as HTMLElement
+    ).getBoundingClientRect();
+    if (!currentStageRect) return;
+
+    setStageRect(currentStageRect);
+
+    // Calculate the mouse position relative to the stage
+    const startPos = {
+      x: e.clientX - currentStageRect.left,
+      y: e.clientY - currentStageRect.top,
+    };
+
+    setLassoStart(startPos);
+    setLassoEnd(startPos);
+    setLassoRect({ x: startPos.x, y: startPos.y, width: 0, height: 0 });
+    setIsLassoActive(true);
+
+    // If shift key isn't pressed, clear current selection
+    if (!e.shiftKey) {
+      setSelectedItems(new Set());
+    }
+
+    // Prevent default behaviors
+    e.preventDefault();
+  }, []);
+
+  // Update lasso selection while dragging
+  const handleLassoMove = useCallback(
+    (e: React.MouseEvent) => {
+      if (!isLassoActive || !lassoStart || !stageRect) return;
+
+      // Calculate current mouse position relative to stage
+      const currentPos = {
+        x: Math.max(
+          0,
+          Math.min(document.stage.width, e.clientX - stageRect.left)
+        ),
+        y: Math.max(
+          0,
+          Math.min(document.stage.height, e.clientY - stageRect.top)
+        ),
+      };
+
+      setLassoEnd(currentPos);
+
+      // Calculate and update lasso rectangle
+      const newRect = calculateLassoRect(lassoStart, currentPos);
+      setLassoRect(newRect);
+    },
+    [
+      isLassoActive,
+      lassoStart,
+      stageRect,
+      document.stage.width,
+      document.stage.height,
+      calculateLassoRect,
+    ]
+  );
+
+  // Complete lasso selection
+  const handleLassoEnd = useCallback(() => {
+    if (!isLassoActive || !lassoRect) {
+      setIsLassoActive(false);
+      setLassoStart(null);
+      setLassoEnd(null);
+      setLassoRect(null);
+      return;
+    }
+
+    // If the lasso was just a click (no dragging), we've already handled it in handleStageClick
+    if (lassoRect.width < 5 && lassoRect.height < 5) {
+      setIsLassoActive(false);
+      setLassoStart(null);
+      setLassoEnd(null);
+      setLassoRect(null);
+      return;
+    }
+
+    // Get items inside the lasso
+    const newSelectedItems = new Set(selectedItems);
+
+    document.items.forEach((item) => {
+      if (isItemInLasso(item, lassoRect)) {
+        newSelectedItems.add(item.id);
+      }
+    });
+
+    setSelectedItems(newSelectedItems);
+
+    // Reset lasso state
+    setIsLassoActive(false);
+    setLassoStart(null);
+    setLassoEnd(null);
+    setLassoRect(null);
+  }, [isLassoActive, lassoRect, document.items, selectedItems, isItemInLasso]);
+
   const state: StageState = {
     selectedItems,
     isDragging,
@@ -474,6 +643,10 @@ export function useStageState({
     stageRect,
     initialItemPositions,
     selectedItemsPositions,
+    isLassoActive,
+    lassoStart,
+    lassoEnd,
+    lassoRect,
   };
 
   const actions: StageStateActions = {
@@ -483,6 +656,9 @@ export function useStageState({
     handleMouseDown,
     handleOverlayMouseMove,
     handleOverlayMouseUp,
+    handleLassoStart,
+    handleLassoMove,
+    handleLassoEnd,
     handleDeleteItem,
     handleFlipItem,
     isItemSelected,

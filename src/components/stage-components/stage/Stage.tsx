@@ -32,7 +32,7 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
   const [state, actions] = useStageState({ snapToGrid });
 
   // Extract state values and actions we need
-  const { selectedItems, isDragging } = state;
+  const { selectedItems, isDragging, isLassoActive, lassoRect } = state;
 
   const {
     handleStageClick,
@@ -44,6 +44,9 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
     isItemSelected,
     getItemVisualPosition,
     selectAllItems,
+    handleLassoStart,
+    handleLassoMove,
+    handleLassoEnd,
   } = actions;
 
   const stageRef = useRef<HTMLDivElement>(null);
@@ -379,6 +382,7 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
         onContextMenu={handleContextMenu}
         onKeyDown={handleKeyDown}
         onMouseMove={handleMouseMove}
+        onMouseDown={handleLassoStart}
       >
         {/* Grid lines - only show when showGrid is true */}
         {showGrid && (
@@ -408,6 +412,19 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
           />
         ))}
 
+        {/* Lasso selection rectangle */}
+        {isLassoActive && lassoRect && (
+          <div
+            className={styles.lassoSelection}
+            style={{
+              left: `${lassoRect.x}px`,
+              top: `${lassoRect.y}px`,
+              width: `${lassoRect.width}px`,
+              height: `${lassoRect.height}px`,
+            }}
+          />
+        )}
+
         {/* Drag overlay - only shown when dragging */}
         {isDragging && (
           <div
@@ -415,6 +432,16 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
             onMouseMove={handleOverlayMouseMove}
             onMouseUp={handleOverlayMouseUp}
             onMouseLeave={handleOverlayMouseUp}
+          />
+        )}
+
+        {/* Lasso overlay - only shown when lasso is active */}
+        {isLassoActive && (
+          <div
+            className={styles.lassoOverlay}
+            onMouseMove={handleLassoMove}
+            onMouseUp={handleLassoEnd}
+            onMouseLeave={handleLassoEnd}
           />
         )}
 
