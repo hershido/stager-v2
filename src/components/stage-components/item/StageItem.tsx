@@ -349,6 +349,37 @@ export function StageItem({
     };
   };
 
+  // Handle duplicate items
+  const handleDuplicateItems = () => {
+    if (isMultiSelected) {
+      // Duplicate all selected items
+      const items = getSelectedItems();
+      items.forEach((selectedItem) => {
+        // Create a duplicate with offset position
+        const newItem: StageItemType = {
+          ...selectedItem,
+          id: crypto.randomUUID(),
+          position: {
+            x: selectedItem.position.x + 20,
+            y: selectedItem.position.y + 20,
+          },
+        };
+        documentService.addItem(newItem);
+      });
+    } else {
+      // Duplicate single item
+      const newItem: StageItemType = {
+        ...item,
+        id: crypto.randomUUID(),
+        position: {
+          x: item.position.x + 20,
+          y: item.position.y + 20,
+        },
+      };
+      documentService.addItem(newItem);
+    }
+  };
+
   // Define menu items for the item context menu
   const itemMenuItems: MenuItemOrDivider[] = [
     {
@@ -370,6 +401,16 @@ export function StageItem({
         </>
       ),
       onClick: handleCutItems,
+    },
+    {
+      id: "duplicate",
+      label: "Duplicate",
+      shortcut: (
+        <>
+          <ShortcutIcon>⌘</ShortcutIcon>D
+        </>
+      ),
+      onClick: handleDuplicateItems,
     },
     { type: "divider" as const },
     {

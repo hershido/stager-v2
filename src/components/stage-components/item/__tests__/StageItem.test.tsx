@@ -374,19 +374,21 @@ describe("StageItem", () => {
       useContextMenu as unknown as ReturnType<typeof vi.fn>
     ).mock.calls[0][0];
 
-    // Verify menu items - we expect 7 items now: copy, cut, divider, alignment, divider, flip, delete
+    // Verify menu items - we expect 8 items now: copy, cut, duplicate, divider, alignment, divider, flip, delete
     const menuItems = contextMenuCall.items;
-    expect(menuItems).toHaveLength(7);
+    expect(menuItems).toHaveLength(8);
     expect(menuItems[0].id).toBe("copy");
     expect(menuItems[0].label).toBe("Copy");
     expect(menuItems[1].id).toBe("cut");
     expect(menuItems[1].label).toBe("Cut");
-    expect(menuItems[2].type).toBe("divider");
-    expect(menuItems[3].id).toBe("alignment");
-    expect(menuItems[4].type).toBe("divider");
-    expect(menuItems[5].id).toBe("flip");
-    expect(menuItems[6].id).toBe("delete");
-    expect(menuItems[6].label).toBe("Delete");
+    expect(menuItems[2].id).toBe("duplicate");
+    expect(menuItems[2].label).toBe("Duplicate");
+    expect(menuItems[3].type).toBe("divider");
+    expect(menuItems[4].id).toBe("alignment");
+    expect(menuItems[5].type).toBe("divider");
+    expect(menuItems[6].id).toBe("flip");
+    expect(menuItems[7].id).toBe("delete");
+    expect(menuItems[7].label).toBe("Delete");
   });
 
   test("creates context menu with correct items for multi-selection", () => {
@@ -410,20 +412,21 @@ describe("StageItem", () => {
       useContextMenu as unknown as ReturnType<typeof vi.fn>
     ).mock.calls[0][0];
 
-    // Verify menu items - we expect 7 items now: copy, cut, divider, alignment, divider, flip, delete
+    // Verify menu items - we expect 8 items now: copy, cut, duplicate, divider, alignment, divider, flip, delete
     const menuItems = contextMenuCall.items;
-    expect(menuItems).toHaveLength(7);
+    expect(menuItems).toHaveLength(8);
 
     // Check that the labels are the same as in single selection
     expect(menuItems[0].id).toBe("copy");
     expect(menuItems[0].label).toBe("Copy");
     expect(menuItems[1].id).toBe("cut");
     expect(menuItems[1].label).toBe("Cut");
-    expect(menuItems[3].id).toBe("alignment");
-    expect(menuItems[5].id).toBe("flip");
-    expect(menuItems[5].label).toBe("Flip");
-    expect(menuItems[6].id).toBe("delete");
-    expect(menuItems[6].label).toBe("Delete");
+    expect(menuItems[2].id).toBe("duplicate");
+    expect(menuItems[4].id).toBe("alignment");
+    expect(menuItems[6].id).toBe("flip");
+    expect(menuItems[6].label).toBe("Flip");
+    expect(menuItems[7].id).toBe("delete");
+    expect(menuItems[7].label).toBe("Delete");
 
     // Check that the header correctly shows multi-selection
     const header = contextMenuCall.header;
@@ -468,15 +471,15 @@ describe("StageItem", () => {
     expect(mockCutItems).toHaveBeenCalledTimes(1);
     expect(mockCutItems).toHaveBeenCalledWith(items, mockOnDelete);
 
-    // Trigger Flip action (now at index 5)
-    menuItems[5].onClick();
+    // Trigger Flip action (now at index 6)
+    menuItems[6].onClick();
     expect(getSelectedItemsMock).toHaveBeenCalledTimes(3);
     expect(mockOnFlip).toHaveBeenCalledTimes(2);
     expect(mockOnFlip).toHaveBeenNthCalledWith(1, "item-1");
     expect(mockOnFlip).toHaveBeenNthCalledWith(2, "item-2");
 
-    // Trigger Delete action (now at index 6)
-    menuItems[6].onClick();
+    // Trigger Delete action (now at index 7)
+    menuItems[7].onClick();
     expect(getSelectedItemsMock).toHaveBeenCalledTimes(4);
     expect(mockOnDelete).toHaveBeenCalledTimes(2);
     expect(mockOnDelete).toHaveBeenNthCalledWith(1, "item-1");
@@ -514,13 +517,13 @@ describe("StageItem", () => {
     expect(mockCutItem).toHaveBeenCalledTimes(1);
     expect(mockCutItem).toHaveBeenCalledWith(mockItem, mockOnDelete);
 
-    // Trigger Flip action (now at index 5)
-    menuItems[5].onClick();
+    // Trigger Flip action (now at index 6)
+    menuItems[6].onClick();
     expect(mockOnFlip).toHaveBeenCalledTimes(1);
     expect(mockOnFlip).toHaveBeenCalledWith("item-1");
 
-    // Trigger Delete action (now at index 6)
-    menuItems[6].onClick();
+    // Trigger Delete action (now at index 7)
+    menuItems[7].onClick();
     expect(mockOnDelete).toHaveBeenCalledTimes(1);
     expect(mockOnDelete).toHaveBeenCalledWith("item-1");
   });
@@ -550,7 +553,7 @@ describe("StageItem", () => {
     ).mock.calls[0][0];
 
     // Get the alignment content component
-    const alignmentMenuItem = contextMenuCall.items[3];
+    const alignmentMenuItem = contextMenuCall.items[4];
     expect(alignmentMenuItem.id).toBe("alignment");
 
     // The content property contains the AlignmentControls component
