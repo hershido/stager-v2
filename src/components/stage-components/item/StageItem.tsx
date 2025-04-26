@@ -2,6 +2,8 @@ import { StageItem as StageItemType } from "../../../types/document";
 import { useContextMenu } from "../../hooks/useContextMenu";
 import { MenuItemOrDivider } from "../../common/ContextMenu";
 import { useClipboardService } from "../../../services/clipboardService";
+import { useDocumentService } from "../../../services/documentService";
+import { AlignmentControls } from "../../common/AlignmentControls";
 import clsx from "clsx";
 import styles from "./StageItem.module.scss";
 
@@ -35,6 +37,7 @@ export function StageItem({
 }: StageItemProps) {
   const { clipboardService } = useClipboardService();
   const { copyItem, copyItems, cutItem, cutItems } = clipboardService;
+  const { document, documentService } = useDocumentService();
 
   const isMultiSelected = isSelected && selectedItemsCount > 1;
 
@@ -82,6 +85,284 @@ export function StageItem({
     }
   };
 
+  // Alignment handlers
+  const handleAlignLeft = () => {
+    if (isMultiSelected) {
+      // Align to leftmost item in selection
+      const items = getSelectedItems();
+      const leftmost = Math.min(...items.map((i) => i.position.x));
+
+      items.forEach((selectedItem) => {
+        documentService.updateItem(selectedItem.id, {
+          position: {
+            ...selectedItem.position,
+            x: leftmost,
+          },
+        });
+      });
+    } else {
+      // Align to left edge of stage
+      documentService.updateItem(item.id, {
+        position: {
+          ...item.position,
+          x: 0,
+        },
+      });
+    }
+  };
+
+  const handleAlignCenter = () => {
+    if (isMultiSelected) {
+      // Find center of selection
+      const items = getSelectedItems();
+      const bounds = getBoundsOfItems(items);
+      const centerX = bounds.left + bounds.width / 2;
+
+      items.forEach((selectedItem) => {
+        const itemCenterOffset = (selectedItem.width || 0) / 2;
+        documentService.updateItem(selectedItem.id, {
+          position: {
+            ...selectedItem.position,
+            x: centerX - itemCenterOffset,
+          },
+        });
+      });
+    } else {
+      // Center horizontally on stage
+      const stageWidth = document.stage.width;
+      const itemWidth = item.width || 0;
+      documentService.updateItem(item.id, {
+        position: {
+          ...item.position,
+          x: (stageWidth - itemWidth) / 2,
+        },
+      });
+    }
+  };
+
+  const handleAlignRight = () => {
+    if (isMultiSelected) {
+      // Align to rightmost item in selection
+      const items = getSelectedItems();
+      const rightEdges = items.map((i) => i.position.x + (i.width || 0));
+      const rightmost = Math.max(...rightEdges);
+
+      items.forEach((selectedItem) => {
+        documentService.updateItem(selectedItem.id, {
+          position: {
+            ...selectedItem.position,
+            x: rightmost - (selectedItem.width || 0),
+          },
+        });
+      });
+    } else {
+      // Align to right edge of stage
+      const stageWidth = document.stage.width;
+      const itemWidth = item.width || 0;
+      documentService.updateItem(item.id, {
+        position: {
+          ...item.position,
+          x: stageWidth - itemWidth,
+        },
+      });
+    }
+  };
+
+  const handleAlignTop = () => {
+    if (isMultiSelected) {
+      // Align to topmost item in selection
+      const items = getSelectedItems();
+      const topmost = Math.min(...items.map((i) => i.position.y));
+
+      items.forEach((selectedItem) => {
+        documentService.updateItem(selectedItem.id, {
+          position: {
+            ...selectedItem.position,
+            y: topmost,
+          },
+        });
+      });
+    } else {
+      // Align to top edge of stage
+      documentService.updateItem(item.id, {
+        position: {
+          ...item.position,
+          y: 0,
+        },
+      });
+    }
+  };
+
+  const handleAlignMiddle = () => {
+    if (isMultiSelected) {
+      // Find vertical center of selection
+      const items = getSelectedItems();
+      const bounds = getBoundsOfItems(items);
+      const middleY = bounds.top + bounds.height / 2;
+
+      items.forEach((selectedItem) => {
+        const itemMiddleOffset = (selectedItem.height || 0) / 2;
+        documentService.updateItem(selectedItem.id, {
+          position: {
+            ...selectedItem.position,
+            y: middleY - itemMiddleOffset,
+          },
+        });
+      });
+    } else {
+      // Center vertically on stage
+      const stageHeight = document.stage.height;
+      const itemHeight = item.height || 0;
+      documentService.updateItem(item.id, {
+        position: {
+          ...item.position,
+          y: (stageHeight - itemHeight) / 2,
+        },
+      });
+    }
+  };
+
+  const handleAlignBottom = () => {
+    if (isMultiSelected) {
+      // Align to bottommost item in selection
+      const items = getSelectedItems();
+      const bottomEdges = items.map((i) => i.position.y + (i.height || 0));
+      const bottommost = Math.max(...bottomEdges);
+
+      items.forEach((selectedItem) => {
+        documentService.updateItem(selectedItem.id, {
+          position: {
+            ...selectedItem.position,
+            y: bottommost - (selectedItem.height || 0),
+          },
+        });
+      });
+    } else {
+      // Align to bottom edge of stage
+      const stageHeight = document.stage.height;
+      const itemHeight = item.height || 0;
+      documentService.updateItem(item.id, {
+        position: {
+          ...item.position,
+          y: stageHeight - itemHeight,
+        },
+      });
+    }
+  };
+
+  // Distribution handlers - only applicable for 3 or more items
+  const handleDistributeHorizontally = () => {
+    if (selectedItemsCount >= 3) {
+      const items = getSelectedItems();
+
+      // Sort items by x position
+      const sortedItems = [...items].sort(
+        (a, b) => a.position.x - b.position.x
+      );
+
+      // Find leftmost and rightmost positions
+      const leftItem = sortedItems[0];
+      const rightItem = sortedItems[sortedItems.length - 1];
+      const leftEdge = leftItem.position.x;
+      const rightEdge = rightItem.position.x + (rightItem.width || 0);
+      const totalWidth = rightEdge - leftEdge;
+
+      // Calculate space between items
+      const totalItemWidth = sortedItems.reduce(
+        (sum, item) => sum + (item.width || 0),
+        0
+      );
+      const spaceBetween =
+        (totalWidth - totalItemWidth) / (sortedItems.length - 1);
+
+      let currentX = leftItem.position.x + (leftItem.width || 0) + spaceBetween;
+
+      // Skip first and last items as they stay in place
+      for (let i = 1; i < sortedItems.length - 1; i++) {
+        const currentItem = sortedItems[i];
+        documentService.updateItem(currentItem.id, {
+          position: {
+            ...currentItem.position,
+            x: currentX,
+          },
+        });
+        currentX += (currentItem.width || 0) + spaceBetween;
+      }
+    }
+  };
+
+  const handleDistributeVertically = () => {
+    if (selectedItemsCount >= 3) {
+      const items = getSelectedItems();
+
+      // Sort items by y position
+      const sortedItems = [...items].sort(
+        (a, b) => a.position.y - b.position.y
+      );
+
+      // Find topmost and bottommost positions
+      const topItem = sortedItems[0];
+      const bottomItem = sortedItems[sortedItems.length - 1];
+      const topEdge = topItem.position.y;
+      const bottomEdge = bottomItem.position.y + (bottomItem.height || 0);
+      const totalHeight = bottomEdge - topEdge;
+
+      // Calculate space between items
+      const totalItemHeight = sortedItems.reduce(
+        (sum, item) => sum + (item.height || 0),
+        0
+      );
+      const spaceBetween =
+        (totalHeight - totalItemHeight) / (sortedItems.length - 1);
+
+      let currentY = topItem.position.y + (topItem.height || 0) + spaceBetween;
+
+      // Skip first and last items as they stay in place
+      for (let i = 1; i < sortedItems.length - 1; i++) {
+        const currentItem = sortedItems[i];
+        documentService.updateItem(currentItem.id, {
+          position: {
+            ...currentItem.position,
+            y: currentY,
+          },
+        });
+        currentY += (currentItem.height || 0) + spaceBetween;
+      }
+    }
+  };
+
+  // Helper function to get bounds of a set of items
+  const getBoundsOfItems = (items: StageItemType[]) => {
+    const left = Math.min(...items.map((i) => i.position.x));
+    const top = Math.min(...items.map((i) => i.position.y));
+    const right = Math.max(...items.map((i) => i.position.x + (i.width || 0)));
+    const bottom = Math.max(
+      ...items.map((i) => i.position.y + (i.height || 0))
+    );
+
+    return {
+      left,
+      top,
+      width: right - left,
+      height: bottom - top,
+    };
+  };
+
+  // Create the alignment controls component
+  const alignmentContent = (
+    <AlignmentControls
+      onAlignLeft={handleAlignLeft}
+      onAlignCenter={handleAlignCenter}
+      onAlignRight={handleAlignRight}
+      onAlignTop={handleAlignTop}
+      onAlignMiddle={handleAlignMiddle}
+      onAlignBottom={handleAlignBottom}
+      showDistribution={selectedItemsCount >= 3}
+      onDistributeHorizontal={handleDistributeHorizontally}
+      onDistributeVertical={handleDistributeVertically}
+    />
+  );
+
   // Define menu items for the item context menu
   const itemMenuItems: MenuItemOrDivider[] = [
     {
@@ -103,6 +384,11 @@ export function StageItem({
         </>
       ),
       onClick: handleCutItems,
+    },
+    { type: "divider" as const },
+    {
+      id: "alignment",
+      content: alignmentContent,
     },
     { type: "divider" as const },
     {

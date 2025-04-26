@@ -55,6 +55,14 @@
       background-color: transparent;
     }
   }
+
+  &.customContent {
+    padding: 8px;
+
+    &:hover {
+      background-color: transparent;
+    }
+  }
 }
 
 .menuItemLabel {
@@ -75,6 +83,77 @@
   height: 1px;
   background-color: #eee;
   margin: 4px 0;
+}
+
+/* Alignment grid styles */
+.alignmentGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  padding: 4px;
+  width: 100%;
+}
+
+.alignmentSection {
+  padding: 8px 0;
+}
+
+.alignmentSectionTitle {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 6px;
+  padding: 0 12px;
+}
+
+.alignmentButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #2a2a2a;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 6px;
+  cursor: pointer;
+  height: 32px;
+  width: 100%;
+
+  &:hover {
+    background-color: #444;
+  }
+
+  &:active {
+    background-color: #555;
+  }
+}
+
+.distributionControls {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  width: 100%;
+}
+
+.distributionButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #2a2a2a;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 6px;
+  cursor: pointer;
+  height: 32px;
+  flex: 1;
+
+  &:hover {
+    background-color: #444;
+  }
+
+  &:active {
+    background-color: #555;
+  }
 }
 
 @keyframes fadeIn {

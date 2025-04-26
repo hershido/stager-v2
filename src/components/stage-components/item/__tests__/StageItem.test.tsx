@@ -3,6 +3,7 @@ import { describe, test, expect, vi, beforeEach } from "vitest";
 import { StageItem } from "../StageItem";
 import { useContextMenu } from "../../../hooks/useContextMenu";
 import { useClipboardService } from "../../../../services/clipboardService";
+import { useDocumentService } from "../../../../services/documentService";
 import { StageItem as StageItemType } from "../../../../types/document";
 
 // Mock the hooks
@@ -12,6 +13,62 @@ vi.mock("../../../hooks/useContextMenu", () => ({
 
 vi.mock("../../../../services/clipboardService", () => ({
   useClipboardService: vi.fn(),
+}));
+
+vi.mock("../../../../services/documentService", () => ({
+  useDocumentService: vi.fn(),
+}));
+
+// Mock the AlignmentControls component
+vi.mock("../../../common/AlignmentControls", () => ({
+  AlignmentControls: (props: {
+    onAlignLeft: () => void;
+    onAlignCenter: () => void;
+    onAlignRight: () => void;
+    onAlignTop: () => void;
+    onAlignMiddle: () => void;
+    onAlignBottom: () => void;
+    showDistribution?: boolean;
+    onDistributeHorizontal?: () => void;
+    onDistributeVertical?: () => void;
+  }) => (
+    <div data-testid="alignment-controls">
+      <button data-testid="align-left" onClick={props.onAlignLeft}>
+        Align Left
+      </button>
+      <button data-testid="align-center" onClick={props.onAlignCenter}>
+        Align Center
+      </button>
+      <button data-testid="align-right" onClick={props.onAlignRight}>
+        Align Right
+      </button>
+      <button data-testid="align-top" onClick={props.onAlignTop}>
+        Align Top
+      </button>
+      <button data-testid="align-middle" onClick={props.onAlignMiddle}>
+        Align Middle
+      </button>
+      <button data-testid="align-bottom" onClick={props.onAlignBottom}>
+        Align Bottom
+      </button>
+      {props.showDistribution && (
+        <>
+          <button
+            data-testid="distribute-horizontal"
+            onClick={props.onDistributeHorizontal}
+          >
+            Distribute Horizontal
+          </button>
+          <button
+            data-testid="distribute-vertical"
+            onClick={props.onDistributeVertical}
+          >
+            Distribute Vertical
+          </button>
+        </>
+      )}
+    </div>
+  ),
 }));
 
 // Mock the CSS module
@@ -25,6 +82,7 @@ vi.mock("../StageItem.module.scss", () => ({
     contextMenuHeader: "contextMenuHeader",
     headerIcon: "headerIcon",
     headerName: "headerName",
+    shortcutIcon: "shortcutIcon",
   },
 }));
 
@@ -56,6 +114,15 @@ describe("StageItem", () => {
   const mockOnDelete = vi.fn();
   const mockOnFlip = vi.fn();
 
+  // Mock document service
+  const mockUpdateItem = vi.fn();
+  const mockDocument = {
+    stage: {
+      width: 1000,
+      height: 800,
+    },
+  };
+
   // Mock clipboard functions
   const mockCopyItem = vi.fn();
   const mockCutItem = vi.fn();
@@ -71,6 +138,23 @@ describe("StageItem", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Setup document service mock
+    (useDocumentService as unknown as ReturnType<typeof vi.fn>).mockReturnValue(
+      {
+        document: mockDocument,
+        documentService: {
+          updateItem: mockUpdateItem,
+          addItem: vi.fn(),
+          removeItem: vi.fn(),
+          updateDocument: vi.fn(),
+          updateStage: vi.fn(),
+          loadDocument: vi.fn(),
+          createNew: vi.fn(),
+          getCurrentDocument: vi.fn(),
+        },
+      }
+    );
 
     // Setup clipboard service mock
     (
@@ -290,18 +374,19 @@ describe("StageItem", () => {
       useContextMenu as unknown as ReturnType<typeof vi.fn>
     ).mock.calls[0][0];
 
-    // Verify menu items - we can't test the onClick functions directly,
-    // but we can check the item structure
+    // Verify menu items - we expect 7 items now: copy, cut, divider, alignment, divider, flip, delete
     const menuItems = contextMenuCall.items;
-    expect(menuItems).toHaveLength(5);
+    expect(menuItems).toHaveLength(7);
     expect(menuItems[0].id).toBe("copy");
     expect(menuItems[0].label).toBe("Copy");
     expect(menuItems[1].id).toBe("cut");
     expect(menuItems[1].label).toBe("Cut");
     expect(menuItems[2].type).toBe("divider");
-    expect(menuItems[3].id).toBe("flip");
-    expect(menuItems[4].id).toBe("delete");
-    expect(menuItems[4].label).toBe("Delete");
+    expect(menuItems[3].id).toBe("alignment");
+    expect(menuItems[4].type).toBe("divider");
+    expect(menuItems[5].id).toBe("flip");
+    expect(menuItems[6].id).toBe("delete");
+    expect(menuItems[6].label).toBe("Delete");
   });
 
   test("creates context menu with correct items for multi-selection", () => {
@@ -325,20 +410,20 @@ describe("StageItem", () => {
       useContextMenu as unknown as ReturnType<typeof vi.fn>
     ).mock.calls[0][0];
 
-    // Verify menu items - we can't test the onClick functions directly,
-    // but we can check the item structure
+    // Verify menu items - we expect 7 items now: copy, cut, divider, alignment, divider, flip, delete
     const menuItems = contextMenuCall.items;
-    expect(menuItems).toHaveLength(5);
+    expect(menuItems).toHaveLength(7);
 
     // Check that the labels are the same as in single selection
     expect(menuItems[0].id).toBe("copy");
     expect(menuItems[0].label).toBe("Copy");
     expect(menuItems[1].id).toBe("cut");
     expect(menuItems[1].label).toBe("Cut");
-    expect(menuItems[3].id).toBe("flip");
-    expect(menuItems[3].label).toBe("Flip");
-    expect(menuItems[4].id).toBe("delete");
-    expect(menuItems[4].label).toBe("Delete");
+    expect(menuItems[3].id).toBe("alignment");
+    expect(menuItems[5].id).toBe("flip");
+    expect(menuItems[5].label).toBe("Flip");
+    expect(menuItems[6].id).toBe("delete");
+    expect(menuItems[6].label).toBe("Delete");
 
     // Check that the header correctly shows multi-selection
     const header = contextMenuCall.header;
@@ -383,15 +468,15 @@ describe("StageItem", () => {
     expect(mockCutItems).toHaveBeenCalledTimes(1);
     expect(mockCutItems).toHaveBeenCalledWith(items, mockOnDelete);
 
-    // Trigger Flip action
-    menuItems[3].onClick();
+    // Trigger Flip action (now at index 5)
+    menuItems[5].onClick();
     expect(getSelectedItemsMock).toHaveBeenCalledTimes(3);
     expect(mockOnFlip).toHaveBeenCalledTimes(2);
     expect(mockOnFlip).toHaveBeenNthCalledWith(1, "item-1");
     expect(mockOnFlip).toHaveBeenNthCalledWith(2, "item-2");
 
-    // Trigger Delete action
-    menuItems[4].onClick();
+    // Trigger Delete action (now at index 6)
+    menuItems[6].onClick();
     expect(getSelectedItemsMock).toHaveBeenCalledTimes(4);
     expect(mockOnDelete).toHaveBeenCalledTimes(2);
     expect(mockOnDelete).toHaveBeenNthCalledWith(1, "item-1");
@@ -429,14 +514,76 @@ describe("StageItem", () => {
     expect(mockCutItem).toHaveBeenCalledTimes(1);
     expect(mockCutItem).toHaveBeenCalledWith(mockItem, mockOnDelete);
 
-    // Trigger Flip action
-    menuItems[3].onClick();
+    // Trigger Flip action (now at index 5)
+    menuItems[5].onClick();
     expect(mockOnFlip).toHaveBeenCalledTimes(1);
     expect(mockOnFlip).toHaveBeenCalledWith("item-1");
 
-    // Trigger Delete action
-    menuItems[4].onClick();
+    // Trigger Delete action (now at index 6)
+    menuItems[6].onClick();
     expect(mockOnDelete).toHaveBeenCalledTimes(1);
     expect(mockOnDelete).toHaveBeenCalledWith("item-1");
+  });
+
+  test("alignment functions call updateItem with correct parameters", () => {
+    // Mock for getSelectedItems
+    const items = [mockItem, mockItem2];
+    const getSelectedItemsMock = vi.fn().mockReturnValue(items);
+
+    render(
+      <StageItem
+        item={mockItem}
+        isDragged={false}
+        isSelected={true}
+        dragVisualPosition={null}
+        onMouseDown={mockOnMouseDown}
+        onDelete={mockOnDelete}
+        onFlip={mockOnFlip}
+        selectedItemsCount={2}
+        getSelectedItems={getSelectedItemsMock}
+      />
+    );
+
+    // Get the alignment controls from the context menu
+    const contextMenuCall = (
+      useContextMenu as unknown as ReturnType<typeof vi.fn>
+    ).mock.calls[0][0];
+
+    // Get the alignment content component
+    const alignmentMenuItem = contextMenuCall.items[3];
+    expect(alignmentMenuItem.id).toBe("alignment");
+
+    // The content property contains the AlignmentControls component
+    expect(alignmentMenuItem.content).toBeDefined();
+
+    // Extract the alignment functions from the passed props
+    const alignmentProps = alignmentMenuItem.content.props;
+
+    // Call the align left function and verify it aligns to the leftmost item
+    // Reset mock between calls to make assertions clearer
+    mockUpdateItem.mockReset();
+    alignmentProps.onAlignLeft();
+    expect(getSelectedItemsMock).toHaveBeenCalled();
+    // We expect both items to be updated with x: 100 (the leftmost x position)
+    expect(mockUpdateItem).toHaveBeenCalledTimes(2);
+    expect(mockUpdateItem).toHaveBeenNthCalledWith(1, "item-1", {
+      position: { ...mockItem.position, x: 100 },
+    });
+    expect(mockUpdateItem).toHaveBeenNthCalledWith(2, "item-2", {
+      position: { ...mockItem2.position, x: 100 },
+    });
+
+    // Test align top (uses the topmost y position)
+    mockUpdateItem.mockReset();
+    alignmentProps.onAlignTop();
+    expect(getSelectedItemsMock).toHaveBeenCalled();
+    // We expect both items to be updated with y: 200 (the topmost y position)
+    expect(mockUpdateItem).toHaveBeenCalledTimes(2);
+    expect(mockUpdateItem).toHaveBeenNthCalledWith(1, "item-1", {
+      position: { ...mockItem.position, y: 200 },
+    });
+    expect(mockUpdateItem).toHaveBeenNthCalledWith(2, "item-2", {
+      position: { ...mockItem2.position, y: 200 },
+    });
   });
 });

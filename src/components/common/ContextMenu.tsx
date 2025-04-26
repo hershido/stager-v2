@@ -4,10 +4,11 @@ import styles from "./ContextMenu.module.scss";
 
 export interface MenuItem {
   id: string;
-  label: string;
-  onClick: () => void;
+  label?: string;
+  onClick?: () => void;
   disabled?: boolean;
   shortcut?: ReactNode;
+  content?: ReactNode; // Custom content to render instead of default label/shortcut
 }
 
 export type MenuItemOrDivider = MenuItem | { type: "divider" };
@@ -93,19 +94,26 @@ export function ContextMenu({
                 key={item.id}
                 className={clsx(styles.menuItem, {
                   [styles.disabled]: item.disabled,
+                  [styles.customContent]: !!item.content,
                 })}
                 onClick={() => {
-                  if (!item.disabled) {
+                  if (!item.disabled && item.onClick) {
                     item.onClick();
                     onClose();
                   }
                 }}
               >
-                <span className={styles.menuItemLabel}>{item.label}</span>
-                {item.shortcut && (
-                  <span className={styles.menuItemShortcut}>
-                    {item.shortcut}
-                  </span>
+                {item.content ? (
+                  item.content
+                ) : (
+                  <>
+                    <span className={styles.menuItemLabel}>{item.label}</span>
+                    {item.shortcut && (
+                      <span className={styles.menuItemShortcut}>
+                        {item.shortcut}
+                      </span>
+                    )}
+                  </>
                 )}
               </button>
             ) : (
