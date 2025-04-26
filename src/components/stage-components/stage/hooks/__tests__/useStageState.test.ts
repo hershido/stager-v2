@@ -248,6 +248,57 @@ describe("useStageState", () => {
     expect(position).toBeNull();
   });
 
+  test("snapToGrid snaps positions to grid lines when dragging", () => {
+    // Create hook with snapToGrid enabled
+    const { result } = renderHook(() => useStageState({ snapToGrid: true }));
+
+    // Get the grid size from mock document
+    const gridSize = mockDocument.stage.gridSize; // 20
+
+    // Simulate mouse down on an item (start drag)
+    act(() => {
+      const mockElement = createMockElement();
+      const mockEvent = {
+        button: 0,
+        target: mockElement,
+        currentTarget: mockElement,
+        clientX: 150,
+        clientY: 150,
+        preventDefault: vi.fn(),
+        stopPropagation: vi.fn(),
+        shiftKey: false,
+      } as unknown as React.MouseEvent;
+
+      result.current[1].handleMouseDown(mockEvent, "item-1");
+    });
+
+    // Verify dragging started correctly
+    expect(result.current[0].isDragging).toBe(true);
+    expect(result.current[0].draggedItem).toBe("item-1");
+
+    // Simulate mouse move to a non-grid-aligned position
+    act(() => {
+      const mockEvent = {
+        clientX: 163, // Not a multiple of gridSize (20)
+        clientY: 177, // Not a multiple of gridSize (20)
+      } as unknown as React.MouseEvent;
+
+      result.current[1].handleOverlayMouseMove(mockEvent);
+    });
+
+    // Get the position after mouse move
+    const visualPos = result.current[0].selectedItemsPositions["item-1"];
+
+    // Test that our grid snapping is working
+    expect(visualPos).toBeDefined();
+    if (visualPos) {
+      // Key assertion: both coordinates should be divisible by gridSize
+      // This is testing our fix - ensuring the final position is snapped to grid
+      expect(visualPos.x % gridSize).toBe(0);
+      expect(visualPos.y % gridSize).toBe(0);
+    }
+  });
+
   test("handleLassoMove selects items in real-time as lasso is dragged", () => {
     const { result } = renderHook(() => useStageState({ snapToGrid: true }));
 

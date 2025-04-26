@@ -385,8 +385,15 @@ export function useStageState({
             const itemHeight = item.height || 60;
 
             // Apply the same constrained delta to all selected items
-            const newX = initialItemPos.x + maxDeltaX;
-            const newY = initialItemPos.y + maxDeltaY;
+            let newX = initialItemPos.x + maxDeltaX;
+            let newY = initialItemPos.y + maxDeltaY;
+
+            // If snap is enabled, snap the final position directly to grid
+            if (snapToGrid) {
+              const { gridSize } = document.stage;
+              newX = Math.round(newX / gridSize) * gridSize;
+              newY = Math.round(newY / gridSize) * gridSize;
+            }
 
             // Final boundary check to absolutely ensure nothing protrudes
             // Use precise Math.min/max to allow exact edge alignment without rounding
