@@ -1,103 +1,85 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useReducer, ReactNode } from "react";
 import { StageItem } from "../types/document";
 
+// Define action types for the clipboard reducer
+export type ClipboardAction =
+  | { type: "COPY_ITEM"; item: StageItem }
+  | { type: "COPY_ITEMS"; items: StageItem[] }
+  | { type: "CLEAR_CLIPBOARD" };
+
+// Define state type
+export interface ClipboardState {
+  clipboardItem: StageItem | null;
+  clipboardItems: StageItem[];
+}
+
+// Context type
 interface ClipboardContextType {
   clipboardItem: StageItem | null;
   clipboardItems: StageItem[];
-  copyItem: (item: StageItem) => void;
-  copyItems: (items: StageItem[]) => void;
-  cutItem: (item: StageItem, deleteCallback: (id: string) => void) => void;
-  cutItems: (items: StageItem[], deleteCallback: (id: string) => void) => void;
-  hasClipboardItem: () => boolean;
-  clearClipboard: () => void;
+  dispatch: React.Dispatch<ClipboardAction>;
 }
 
-const ClipboardContext = createContext<ClipboardContextType>({
+// Create the context with default values
+const ClipboardContext = createContext<ClipboardContextType | undefined>(
+  undefined
+);
+
+// Clipboard reducer function
+function clipboardReducer(
+  state: ClipboardState,
+  action: ClipboardAction
+): ClipboardState {
+  switch (action.type) {
+    case "COPY_ITEM":
+      return {
+        clipboardItem: { ...action.item },
+        clipboardItems: [{ ...action.item }],
+      };
+    case "COPY_ITEMS":
+      if (action.items.length === 0) return state;
+      return {
+        clipboardItem: { ...action.items[0] }, // For backward compatibility
+        clipboardItems: action.items.map((item) => ({ ...item })),
+      };
+    case "CLEAR_CLIPBOARD":
+      return {
+        clipboardItem: null,
+        clipboardItems: [],
+      };
+    default:
+      return state;
+  }
+}
+
+// Initial state
+const initialClipboardState: ClipboardState = {
   clipboardItem: null,
   clipboardItems: [],
-  copyItem: () => {
-    console.warn("ClipboardProvider not found - using default copyItem");
-  },
-  copyItems: () => {
-    console.warn("ClipboardProvider not found - using default copyItems");
-  },
-  cutItem: () => {
-    console.warn("ClipboardProvider not found - using default cutItem");
-  },
-  cutItems: () => {
-    console.warn("ClipboardProvider not found - using default cutItems");
-  },
-  hasClipboardItem: () => false,
-  clearClipboard: () => {},
-});
+};
 
+// Provider component
 export function ClipboardProvider({ children }: { children: ReactNode }) {
-  const [clipboardItem, setClipboardItem] = useState<StageItem | null>(null);
-  const [clipboardItems, setClipboardItems] = useState<StageItem[]>([]);
+  const [state, dispatch] = useReducer(clipboardReducer, initialClipboardState);
 
-  const copyItem = (item: StageItem) => {
-    setClipboardItem({ ...item });
-    setClipboardItems([{ ...item }]);
-  };
-
-  const copyItems = (items: StageItem[]) => {
-    if (items.length === 0) return;
-
-    // For backward compatibility, also set the single item (first item)
-    setClipboardItem({ ...items[0] });
-    // Store all items
-    setClipboardItems(items.map((item) => ({ ...item })));
-  };
-
-  const cutItem = (item: StageItem, deleteCallback: (id: string) => void) => {
-    // First store the item in clipboard
-    setClipboardItem({ ...item });
-    setClipboardItems([{ ...item }]);
-    // Then immediately delete the original item
-    deleteCallback(item.id);
-  };
-
-  const cutItems = (
-    items: StageItem[],
-    deleteCallback: (id: string) => void
-  ) => {
-    if (items.length === 0) return;
-
-    // First store the items in clipboard
-    setClipboardItem({ ...items[0] });
-    setClipboardItems(items.map((item) => ({ ...item })));
-
-    // Then immediately delete the original items
-    items.forEach((item) => {
-      deleteCallback(item.id);
-    });
-  };
-
-  const hasClipboardItem = () => clipboardItem !== null;
-
-  const clearClipboard = () => {
-    setClipboardItem(null);
-    setClipboardItems([]);
-  };
-
-  const value = {
-    clipboardItem,
-    clipboardItems,
-    copyItem,
-    copyItems,
-    cutItem,
-    cutItems,
-    hasClipboardItem,
-    clearClipboard,
+  const contextValue = {
+    clipboardItem: state.clipboardItem,
+    clipboardItems: state.clipboardItems,
+    dispatch,
   };
 
   return (
-    <ClipboardContext.Provider value={value}>
+    <ClipboardContext.Provider value={contextValue}>
       {children}
     </ClipboardContext.Provider>
   );
 }
 
+// Custom hook to use the clipboard context
 export function useClipboard() {
-  return useContext(ClipboardContext);
+  const context = useContext(ClipboardContext);
+  if (context === undefined) {
+    throw new Error("useClipboard must be used within a ClipboardProvider");
+  }
+  return context;
 }

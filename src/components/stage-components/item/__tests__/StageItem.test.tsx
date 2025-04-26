@@ -2,7 +2,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, test, expect, vi, beforeEach } from "vitest";
 import { StageItem } from "../StageItem";
 import { useContextMenu } from "../../../hooks/useContextMenu";
-import { useClipboard } from "../../../../context/ClipboardContext";
+import { useClipboardService } from "../../../../services/clipboardService";
 import { StageItem as StageItemType } from "../../../../types/document";
 
 // Mock the hooks
@@ -10,8 +10,8 @@ vi.mock("../../../hooks/useContextMenu", () => ({
   useContextMenu: vi.fn(),
 }));
 
-vi.mock("../../../../context/ClipboardContext", () => ({
-  useClipboard: vi.fn(),
+vi.mock("../../../../services/clipboardService", () => ({
+  useClipboardService: vi.fn(),
 }));
 
 // Mock the CSS module
@@ -72,12 +72,20 @@ describe("StageItem", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // Setup clipboard mock
-    (useClipboard as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
-      copyItem: mockCopyItem,
-      cutItem: mockCutItem,
-      copyItems: mockCopyItems,
-      cutItems: mockCutItems,
+    // Setup clipboard service mock
+    (
+      useClipboardService as unknown as ReturnType<typeof vi.fn>
+    ).mockReturnValue({
+      clipboardItem: null,
+      clipboardItems: [],
+      clipboardService: {
+        copyItem: mockCopyItem,
+        cutItem: mockCutItem,
+        copyItems: mockCopyItems,
+        cutItems: mockCutItems,
+        hasClipboardItem: vi.fn(),
+        clearClipboard: vi.fn(),
+      },
     });
 
     // Setup context menu mock

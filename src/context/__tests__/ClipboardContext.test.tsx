@@ -1,6 +1,7 @@
 import { renderHook, act } from "@testing-library/react";
 import { describe, test, expect, vi } from "vitest";
-import { ClipboardProvider, useClipboard } from "../ClipboardContext";
+import { ClipboardProvider } from "../ClipboardContext";
+import { useClipboardService } from "../../services/clipboardService";
 import { StageItem } from "../../types/document";
 
 describe("ClipboardContext", () => {
@@ -32,19 +33,19 @@ describe("ClipboardContext", () => {
     const wrapper = ({ children }: { children: React.ReactNode }) => (
       <ClipboardProvider>{children}</ClipboardProvider>
     );
-    return renderHook(() => useClipboard(), { wrapper });
+    return renderHook(() => useClipboardService(), { wrapper });
   };
 
   test("copyItem stores a single item in clipboard", () => {
     const { result } = setupClipboardHook();
 
     act(() => {
-      result.current.copyItem(mockItem1);
+      result.current.clipboardService.copyItem(mockItem1);
     });
 
     expect(result.current.clipboardItem).toEqual(mockItem1);
     expect(result.current.clipboardItems).toEqual([mockItem1]);
-    expect(result.current.hasClipboardItem()).toBe(true);
+    expect(result.current.clipboardService.hasClipboardItem()).toBe(true);
   });
 
   test("copyItems stores multiple items in clipboard", () => {
@@ -52,7 +53,7 @@ describe("ClipboardContext", () => {
     const items = [mockItem1, mockItem2];
 
     act(() => {
-      result.current.copyItems(items);
+      result.current.clipboardService.copyItems(items);
     });
 
     // clipboardItem should contain the first item for backward compatibility
@@ -62,14 +63,14 @@ describe("ClipboardContext", () => {
     expect(result.current.clipboardItems).toHaveLength(2);
     expect(result.current.clipboardItems[0]).toEqual(mockItem1);
     expect(result.current.clipboardItems[1]).toEqual(mockItem2);
-    expect(result.current.hasClipboardItem()).toBe(true);
+    expect(result.current.clipboardService.hasClipboardItem()).toBe(true);
   });
 
   test("cutItem stores a single item and calls delete callback", () => {
     const { result } = setupClipboardHook();
 
     act(() => {
-      result.current.cutItem(mockItem1, mockDeleteCallback);
+      result.current.clipboardService.cutItem(mockItem1, mockDeleteCallback);
     });
 
     expect(result.current.clipboardItem).toEqual(mockItem1);
@@ -83,7 +84,7 @@ describe("ClipboardContext", () => {
     const items = [mockItem1, mockItem2];
 
     act(() => {
-      result.current.cutItems(items, mockDeleteCallback);
+      result.current.clipboardService.cutItems(items, mockDeleteCallback);
     });
 
     // clipboardItem should contain the first item for backward compatibility
@@ -106,7 +107,7 @@ describe("ClipboardContext", () => {
 
     // First add some items
     act(() => {
-      result.current.copyItems(items);
+      result.current.clipboardService.copyItems(items);
     });
 
     // Verify items are in clipboard
@@ -115,13 +116,13 @@ describe("ClipboardContext", () => {
 
     // Clear clipboard
     act(() => {
-      result.current.clearClipboard();
+      result.current.clipboardService.clearClipboard();
     });
 
     // Verify everything is cleared
     expect(result.current.clipboardItem).toBeNull();
     expect(result.current.clipboardItems).toHaveLength(0);
-    expect(result.current.hasClipboardItem()).toBe(false);
+    expect(result.current.clipboardService.hasClipboardItem()).toBe(false);
   });
 
   test("empty items array in copyItems doesn't change clipboard state", () => {
@@ -129,12 +130,12 @@ describe("ClipboardContext", () => {
 
     // First add a single item
     act(() => {
-      result.current.copyItem(mockItem1);
+      result.current.clipboardService.copyItem(mockItem1);
     });
 
     // Then try to copy an empty array
     act(() => {
-      result.current.copyItems([]);
+      result.current.clipboardService.copyItems([]);
     });
 
     // Clipboard should still contain the original item
@@ -147,12 +148,12 @@ describe("ClipboardContext", () => {
 
     // First add a single item
     act(() => {
-      result.current.copyItem(mockItem1);
+      result.current.clipboardService.copyItem(mockItem1);
     });
 
     // Then try to cut an empty array
     act(() => {
-      result.current.cutItems([], mockDeleteCallback);
+      result.current.clipboardService.cutItems([], mockDeleteCallback);
     });
 
     // Clipboard should still contain the original item

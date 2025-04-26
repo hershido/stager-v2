@@ -1,7 +1,7 @@
 import { StageItem as StageItemType } from "../../../types/document";
 import { useContextMenu } from "../../hooks/useContextMenu";
 import { MenuItemOrDivider } from "../../common/ContextMenu";
-import { useClipboard } from "../../../context/ClipboardContext";
+import { useClipboardService } from "../../../services/clipboardService";
 import clsx from "clsx";
 import styles from "./StageItem.module.scss";
 
@@ -33,7 +33,8 @@ export function StageItem({
   selectedItemsCount = 0,
   getSelectedItems = () => [],
 }: StageItemProps) {
-  const { copyItem, copyItems, cutItem, cutItems } = useClipboard();
+  const { clipboardService } = useClipboardService();
+  const { copyItem, copyItems, cutItem, cutItems } = clipboardService;
 
   const isMultiSelected = isSelected && selectedItemsCount > 1;
 

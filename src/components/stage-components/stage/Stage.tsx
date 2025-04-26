@@ -3,7 +3,7 @@ import { StageItem as StageItemType } from "../../../types/document";
 import { StageItem } from "../item/StageItem";
 import { useContextMenu } from "../../hooks/useContextMenu";
 import { MenuItemOrDivider } from "../../common/ContextMenu";
-import { useClipboard } from "../../../context/ClipboardContext";
+import { useClipboardService } from "../../../services/clipboardService";
 import { useStageState } from "./hooks/useStageState";
 import styles from "./Stage.module.scss";
 import React, { useRef, useCallback, useState } from "react";
@@ -20,13 +20,9 @@ interface StageProps {
 
 export function Stage({ showGrid, snapToGrid }: StageProps) {
   const { document, documentService } = useDocumentService();
-  const {
-    clipboardItem,
-    clipboardItems,
-    hasClipboardItem,
-    copyItems,
-    cutItems,
-  } = useClipboard();
+  const { clipboardService, clipboardItem, clipboardItems } =
+    useClipboardService();
+  const { hasClipboardItem, copyItems, cutItems } = clipboardService;
 
   // Use the stage state hook
   const [state, actions] = useStageState({ snapToGrid });

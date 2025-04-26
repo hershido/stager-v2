@@ -2,7 +2,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, test, expect, vi, beforeEach } from "vitest";
 import { Stage } from "../Stage";
 import { useDocumentService } from "../../../../services/documentService";
-import { useClipboard } from "../../../../context/ClipboardContext";
+import { useClipboardService } from "../../../../services/clipboardService";
 import { useContextMenu } from "../../../hooks/useContextMenu";
 import { useStageState } from "../hooks/useStageState";
 import { StageItem as StageItemType } from "../../../../types/document";
@@ -12,8 +12,8 @@ vi.mock("../../../../services/documentService", () => ({
   useDocumentService: vi.fn(),
 }));
 
-vi.mock("../../../../context/ClipboardContext", () => ({
-  useClipboard: vi.fn(),
+vi.mock("../../../../services/clipboardService", () => ({
+  useClipboardService: vi.fn(),
 }));
 
 vi.mock("../../../hooks/useContextMenu", () => ({
@@ -122,10 +122,20 @@ describe("Stage", () => {
   // Mock clipboard functions
   const mockHasClipboardItem = vi.fn().mockReturnValue(false);
   const mockCopyItems = vi.fn();
-  const mockClipboardFunctions = {
-    clipboardItem: null,
+  const mockCutItems = vi.fn();
+  const mockClipboardService = {
     hasClipboardItem: mockHasClipboardItem,
     copyItems: mockCopyItems,
+    cutItems: mockCutItems,
+    copyItem: vi.fn(),
+    cutItem: vi.fn(),
+    clearClipboard: vi.fn(),
+  };
+
+  const mockClipboardFunctions = {
+    clipboardItem: null,
+    clipboardItems: [],
+    clipboardService: mockClipboardService,
   };
 
   // Mock stage state
@@ -191,10 +201,10 @@ describe("Stage", () => {
       }
     );
 
-    // Setup clipboard mock
-    (useClipboard as unknown as ReturnType<typeof vi.fn>).mockReturnValue(
-      mockClipboardFunctions
-    );
+    // Setup clipboard service mock
+    (
+      useClipboardService as unknown as ReturnType<typeof vi.fn>
+    ).mockReturnValue(mockClipboardFunctions);
 
     // Setup stage state mock
     (useStageState as unknown as ReturnType<typeof vi.fn>).mockReturnValue([
@@ -332,6 +342,23 @@ describe("Stage", () => {
     mockSelectedItems.add("item-1");
     mockSelectedItems.add("item-2");
 
+    // Setup copy spy
+    const mockCopyItems = vi.fn();
+    (
+      useClipboardService as unknown as ReturnType<typeof vi.fn>
+    ).mockReturnValue({
+      clipboardItem: null,
+      clipboardItems: [],
+      clipboardService: {
+        copyItems: mockCopyItems,
+        hasClipboardItem: vi.fn().mockReturnValue(false),
+        copyItem: vi.fn(),
+        cutItem: vi.fn(),
+        cutItems: vi.fn(),
+        clearClipboard: vi.fn(),
+      },
+    });
+
     // Render the stage
     render(<Stage showGrid={true} snapToGrid={true} />);
 
@@ -357,11 +384,25 @@ describe("Stage", () => {
   });
 
   test("Ctrl+C keyboard shortcut copies a single selected item", () => {
-    // Reset mockCopyItems call count
-    mockCopyItems.mockClear();
-
-    // Setup with a single selected item
+    // Setup selected items
     mockSelectedItems.add("item-1");
+
+    // Setup copy spy
+    const mockCopyItems = vi.fn();
+    (
+      useClipboardService as unknown as ReturnType<typeof vi.fn>
+    ).mockReturnValue({
+      clipboardItem: null,
+      clipboardItems: [],
+      clipboardService: {
+        copyItems: mockCopyItems,
+        hasClipboardItem: vi.fn().mockReturnValue(false),
+        copyItem: vi.fn(),
+        cutItem: vi.fn(),
+        cutItems: vi.fn(),
+        clearClipboard: vi.fn(),
+      },
+    });
 
     // Render the stage
     render(<Stage showGrid={true} snapToGrid={true} />);
@@ -385,19 +426,26 @@ describe("Stage", () => {
   });
 
   test("Ctrl+X keyboard shortcut cuts selected items", () => {
-    // Mock the cutItems function
-    const mockCutItems = vi.fn();
-    (useClipboard as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
-      clipboardItem: null,
-      clipboardItems: [],
-      hasClipboardItem: mockHasClipboardItem,
-      copyItems: mockCopyItems,
-      cutItems: mockCutItems,
-    });
-
     // Setup selected items
     mockSelectedItems.add("item-1");
     mockSelectedItems.add("item-2");
+
+    // Mock the cutItems function
+    const mockCutItems = vi.fn();
+    (
+      useClipboardService as unknown as ReturnType<typeof vi.fn>
+    ).mockReturnValue({
+      clipboardItem: null,
+      clipboardItems: [],
+      clipboardService: {
+        cutItems: mockCutItems,
+        hasClipboardItem: vi.fn().mockReturnValue(false),
+        copyItem: vi.fn(),
+        copyItems: vi.fn(),
+        cutItem: vi.fn(),
+        clearClipboard: vi.fn(),
+      },
+    });
 
     // Render the stage
     render(<Stage showGrid={true} snapToGrid={true} />);
@@ -425,20 +473,25 @@ describe("Stage", () => {
   });
 
   test("Ctrl+X keyboard shortcut cuts a single selected item", () => {
+    // Setup selected items
+    mockSelectedItems.add("item-1");
+
     // Mock the cutItems function
     const mockCutItems = vi.fn();
-    (useClipboard as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+    (
+      useClipboardService as unknown as ReturnType<typeof vi.fn>
+    ).mockReturnValue({
       clipboardItem: null,
       clipboardItems: [],
-      hasClipboardItem: mockHasClipboardItem,
-      copyItems: mockCopyItems,
-      cutItems: mockCutItems,
+      clipboardService: {
+        cutItems: mockCutItems,
+        hasClipboardItem: vi.fn().mockReturnValue(false),
+        copyItem: vi.fn(),
+        copyItems: vi.fn(),
+        cutItem: vi.fn(),
+        clearClipboard: vi.fn(),
+      },
     });
-
-    // Reset selected items
-    mockSelectedItems.clear();
-    // Setup with a single selected item
-    mockSelectedItems.add("item-1");
 
     // Render the stage
     render(<Stage showGrid={true} snapToGrid={true} />);
@@ -627,27 +680,29 @@ describe("Stage", () => {
   });
 
   test("Ctrl+V keyboard shortcut pastes clipboard items", () => {
-    const mockItem = {
-      id: "clipboard-item-1",
-      name: "Clipboard Item",
-      position: { x: 50, y: 50 },
-      width: 100,
-      height: 100,
-    };
+    // Create a mock item
+    const mockItem = { ...mockItems[0], id: "new-id" };
 
     // Mock the clipboard with an item
-    (useClipboard as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+    const mockHasClipboardItem = vi.fn().mockReturnValue(true);
+    (
+      useClipboardService as unknown as ReturnType<typeof vi.fn>
+    ).mockReturnValue({
       clipboardItem: mockItem,
       clipboardItems: [mockItem],
-      hasClipboardItem: () => true,
-      copyItems: mockCopyItems,
-      cutItems: mockCopyItems, // Reuse existing mock function
-      clearClipboard: vi.fn(), // Add a simple mock function
+      clipboardService: {
+        hasClipboardItem: mockHasClipboardItem,
+        copyItem: vi.fn(),
+        copyItems: vi.fn(),
+        cutItem: vi.fn(),
+        cutItems: vi.fn(),
+        clearClipboard: vi.fn(),
+      },
     });
 
+    // Render the stage
     render(<Stage showGrid={true} snapToGrid={true} />);
 
-    // Create a mock stage element ref
     const stageElement = screen.getByTestId("stage");
 
     // Simulate Ctrl+V keyboard shortcut
@@ -662,23 +717,24 @@ describe("Stage", () => {
   });
 
   test("Paste keyboard shortcut uses mouse position when cursor is within stage", () => {
-    // Mock an item for the clipboard
-    const mockItem = {
-      id: "clipboard-item-1",
-      name: "Clipboard Item",
-      position: { x: 50, y: 50 },
-      width: 100,
-      height: 100,
-    };
+    // Create a mock item
+    const mockItem = { ...mockItems[0], id: "new-id" };
 
     // Mock the clipboard with an item
-    (useClipboard as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+    const mockHasClipboardItem = vi.fn().mockReturnValue(true);
+    (
+      useClipboardService as unknown as ReturnType<typeof vi.fn>
+    ).mockReturnValue({
       clipboardItem: mockItem,
       clipboardItems: [mockItem],
-      hasClipboardItem: () => true,
-      copyItems: mockCopyItems,
-      cutItems: mockCopyItems,
-      clearClipboard: vi.fn(),
+      clipboardService: {
+        hasClipboardItem: mockHasClipboardItem,
+        copyItem: vi.fn(),
+        copyItems: vi.fn(),
+        cutItem: vi.fn(),
+        cutItems: vi.fn(),
+        clearClipboard: vi.fn(),
+      },
     });
 
     // Mock context menu state to capture the paste position
@@ -691,6 +747,7 @@ describe("Stage", () => {
       },
     });
 
+    // Render the stage
     render(<Stage showGrid={true} snapToGrid={true} />);
 
     // Simulate mouse movement inside the stage
@@ -722,23 +779,24 @@ describe("Stage", () => {
   });
 
   test("Paste keyboard shortcut works when cursor is outside stage", () => {
-    // Mock an item for the clipboard
-    const mockItem = {
-      id: "clipboard-item-1",
-      name: "Clipboard Item",
-      position: { x: 50, y: 50 },
-      width: 100,
-      height: 100,
-    };
+    // Create a mock item
+    const mockItem = { ...mockItems[0], id: "new-id" };
 
     // Mock the clipboard with an item
-    (useClipboard as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+    const mockHasClipboardItem = vi.fn().mockReturnValue(true);
+    (
+      useClipboardService as unknown as ReturnType<typeof vi.fn>
+    ).mockReturnValue({
       clipboardItem: mockItem,
       clipboardItems: [mockItem],
-      hasClipboardItem: () => true,
-      copyItems: mockCopyItems,
-      cutItems: mockCopyItems,
-      clearClipboard: vi.fn(),
+      clipboardService: {
+        hasClipboardItem: mockHasClipboardItem,
+        copyItem: vi.fn(),
+        copyItems: vi.fn(),
+        cutItem: vi.fn(),
+        cutItems: vi.fn(),
+        clearClipboard: vi.fn(),
+      },
     });
 
     // Reset mock call history
