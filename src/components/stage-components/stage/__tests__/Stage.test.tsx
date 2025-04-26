@@ -996,4 +996,48 @@ describe("Stage", () => {
     // Restore original function
     window.getComputedStyle = originalGetComputedStyle;
   });
+
+  test("Ctrl+D keyboard shortcut duplicates selected items", () => {
+    // Setup selected items
+    mockSelectedItems.add("item-1");
+    mockSelectedItems.add("item-2");
+
+    // Mock crypto.randomUUID to return predictable values
+    const originalRandomUUID = crypto.randomUUID;
+    crypto.randomUUID = vi
+      .fn()
+      .mockReturnValueOnce("new-item-1")
+      .mockReturnValueOnce("new-item-2");
+
+    render(<Stage showGrid={true} snapToGrid={false} />);
+
+    // Simulate Ctrl+D keyboard event
+    const stage = screen.getByTestId("stage");
+    fireEvent.keyDown(stage, {
+      key: "d",
+      ctrlKey: true, // Use ctrl for tests, but works with cmd on Mac too
+    });
+
+    // Check correct items were duplicated
+    expect(mockAddItem).toHaveBeenCalledTimes(2);
+    expect(mockAddItem).toHaveBeenNthCalledWith(1, {
+      ...mockItems[0],
+      id: "new-item-1",
+      position: {
+        x: mockItems[0].position.x + 20, // Offset by 20px
+        y: mockItems[0].position.y + 20,
+      },
+    });
+    expect(mockAddItem).toHaveBeenNthCalledWith(2, {
+      ...mockItems[1],
+      id: "new-item-2",
+      position: {
+        x: mockItems[1].position.x + 20, // Offset by 20px
+        y: mockItems[1].position.y + 20,
+      },
+    });
+
+    // Restore original crypto.randomUUID
+    crypto.randomUUID = originalRandomUUID;
+  });
 });

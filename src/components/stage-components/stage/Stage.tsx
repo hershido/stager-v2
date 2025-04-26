@@ -344,6 +344,29 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
             handlePasteItem();
           }
         }
+
+        // Duplicate - Ctrl/Cmd+D
+        if (e.key === "d" && selectedItems.size > 0) {
+          console.log("Duplicate triggered, items:", Array.from(selectedItems));
+          e.preventDefault();
+
+          const itemsToDuplicate = document.items.filter((item) =>
+            selectedItems.has(item.id)
+          );
+
+          // Create duplicates with offset position
+          itemsToDuplicate.forEach((item) => {
+            const newItem: StageItemType = {
+              ...item,
+              id: crypto.randomUUID(),
+              position: {
+                x: item.position.x + 20,
+                y: item.position.y + 20,
+              },
+            };
+            documentService.addItem(newItem);
+          });
+        }
       }
     },
     [
