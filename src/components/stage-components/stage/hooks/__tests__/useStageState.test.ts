@@ -247,4 +247,106 @@ describe("useStageState", () => {
 
     expect(position).toBeNull();
   });
+
+  test("handleLassoMove selects items in real-time as lasso is dragged", () => {
+    const { result } = renderHook(() => useStageState({ snapToGrid: true }));
+
+    // First setup lasso start
+    act(() => {
+      const [, actions] = result.current;
+
+      // Create a mock element with getBoundingClientRect
+      const mockElement = createMockElement();
+
+      // Create a mock event for lasso start
+      const mockStartEvent = {
+        target: mockElement,
+        currentTarget: mockElement,
+        button: 0, // Left mouse button
+        clientX: 100, // Starting coordinates (will be 100-50=50 relative to element)
+        clientY: 100,
+        preventDefault: vi.fn(),
+      } as unknown as React.MouseEvent;
+
+      // Start lasso selection
+      actions.handleLassoStart(mockStartEvent);
+    });
+
+    // Verify lasso is active
+    expect(result.current[0].isLassoActive).toBe(true);
+    expect(result.current[0].lassoStart).toEqual({ x: 50, y: 50 }); // 100-50=50 for both
+
+    // Initially no items should be selected
+    expect(result.current[0].selectedItems.size).toBe(0);
+
+    // Now simulate dragging the lasso to cover item-1
+    act(() => {
+      const [, actions] = result.current;
+
+      // Create a mock event for lasso move
+      const mockMoveEvent = {
+        clientX: 200, // Drag to cover item-1 at (100, 100), adjusting for mockElement offset (50, 50)
+        clientY: 200,
+        shiftKey: false,
+      } as unknown as React.MouseEvent;
+
+      // Move lasso
+      actions.handleLassoMove(mockMoveEvent);
+    });
+
+    // Verify item-1 is selected in real-time during lasso drag
+    expect(result.current[0].selectedItems.size).toBe(1);
+    expect(result.current[0].selectedItems.has("item-1")).toBe(true);
+
+    // Now extend lasso to also cover item-2
+    act(() => {
+      const [, actions] = result.current;
+
+      // Create a mock event for lasso move
+      const mockMoveEvent = {
+        clientX: 300, // Drag to cover both items, adjusted for mockElement offset
+        clientY: 300,
+        shiftKey: false,
+      } as unknown as React.MouseEvent;
+
+      // Move lasso
+      actions.handleLassoMove(mockMoveEvent);
+    });
+
+    // Verify both items are selected in real-time
+    expect(result.current[0].selectedItems.size).toBe(2);
+    expect(result.current[0].selectedItems.has("item-1")).toBe(true);
+    expect(result.current[0].selectedItems.has("item-2")).toBe(true);
+
+    // Now test shift key behavior - move lasso back to only cover item-1 with shift key
+    act(() => {
+      const [, actions] = result.current;
+
+      // Create a mock event for lasso move with shift key
+      const mockMoveEvent = {
+        clientX: 200, // Adjusted for mockElement offset
+        clientY: 200,
+        shiftKey: true, // Hold shift key
+      } as unknown as React.MouseEvent;
+
+      // Move lasso with shift key
+      actions.handleLassoMove(mockMoveEvent);
+    });
+
+    // Verify both items remain selected when using shift
+    expect(result.current[0].selectedItems.size).toBe(2);
+
+    // End the lasso selection
+    act(() => {
+      const [, actions] = result.current;
+      actions.handleLassoEnd();
+    });
+
+    // Verify lasso state is reset
+    expect(result.current[0].isLassoActive).toBe(false);
+    expect(result.current[0].lassoRect).toBe(null);
+
+    // But selection remains
+    expect(result.current[0].selectedItems.size).toBe(2);
+  });
 });
