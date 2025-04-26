@@ -1,5 +1,4 @@
 import React from "react";
-import styles from "./ContextMenu.module.scss";
 import {
   AlignLeftIcon,
   AlignCenterIcon,
@@ -10,14 +9,15 @@ import {
   DistributeHorizontalIcon,
   DistributeVerticalIcon,
 } from "./AlignmentIcons";
+import styles from "../common/ContextMenu.module.scss";
 
 interface AlignmentControlsProps {
-  onAlignLeft: () => void;
-  onAlignCenter: () => void;
-  onAlignRight: () => void;
-  onAlignTop: () => void;
-  onAlignMiddle: () => void;
-  onAlignBottom: () => void;
+  onAlignLeft?: () => void;
+  onAlignCenter?: () => void;
+  onAlignRight?: () => void;
+  onAlignTop?: () => void;
+  onAlignMiddle?: () => void;
+  onAlignBottom?: () => void;
   showDistribution?: boolean;
   onDistributeHorizontal?: () => void;
   onDistributeVertical?: () => void;
@@ -35,72 +35,86 @@ export const AlignmentControls: React.FC<AlignmentControlsProps> = ({
   onDistributeVertical,
 }) => {
   return (
-    <div>
-      <div className={styles.alignmentSection}>
-        <div className={styles.alignmentSectionTitle}>Alignment</div>
-        <div className={styles.alignmentGrid}>
+    <div className={styles.alignmentContainer}>
+      <div className={styles.alignmentGroup}>
+        <div className={styles.alignmentLabel}>Horizontal Align</div>
+        <div className={styles.alignmentRow}>
           <button
-            className={styles.alignmentButton}
+            className={styles.alignmentMenuItem}
             onClick={onAlignLeft}
-            title="Align Left"
+            disabled={!onAlignLeft}
           >
             <AlignLeftIcon />
+            <span>Left</span>
           </button>
           <button
-            className={styles.alignmentButton}
+            className={styles.alignmentMenuItem}
             onClick={onAlignCenter}
-            title="Align Center"
+            disabled={!onAlignCenter}
           >
             <AlignCenterIcon />
+            <span>Center</span>
           </button>
           <button
-            className={styles.alignmentButton}
+            className={styles.alignmentMenuItem}
             onClick={onAlignRight}
-            title="Align Right"
+            disabled={!onAlignRight}
           >
             <AlignRightIcon />
+            <span>Right</span>
           </button>
+        </div>
+      </div>
+
+      <div className={styles.alignmentGroup}>
+        <div className={styles.alignmentLabel}>Vertical Align</div>
+        <div className={styles.alignmentRow}>
           <button
-            className={styles.alignmentButton}
+            className={styles.alignmentMenuItem}
             onClick={onAlignTop}
-            title="Align Top"
+            disabled={!onAlignTop}
           >
             <AlignTopIcon />
+            <span>Top</span>
           </button>
           <button
-            className={styles.alignmentButton}
+            className={styles.alignmentMenuItem}
             onClick={onAlignMiddle}
-            title="Align Middle"
+            disabled={!onAlignMiddle}
           >
             <AlignMiddleIcon />
+            <span>Middle</span>
           </button>
           <button
-            className={styles.alignmentButton}
+            className={styles.alignmentMenuItem}
             onClick={onAlignBottom}
-            title="Align Bottom"
+            disabled={!onAlignBottom}
           >
             <AlignBottomIcon />
+            <span>Bottom</span>
           </button>
         </div>
       </div>
 
       {showDistribution && (
-        <div className={styles.alignmentSection}>
-          <div className={styles.alignmentSectionTitle}>Distribution</div>
-          <div className={styles.distributionControls}>
+        <div className={styles.alignmentGroup}>
+          <div className={styles.alignmentLabel}>Distribute</div>
+          <div className={styles.alignmentRow}>
             <button
-              className={styles.distributionButton}
+              className={styles.alignmentMenuItem}
               onClick={onDistributeHorizontal}
-              title="Distribute Horizontally"
+              disabled={!onDistributeHorizontal}
             >
               <DistributeHorizontalIcon />
+              <span>Horizontal</span>
             </button>
             <button
-              className={styles.distributionButton}
+              className={styles.alignmentMenuItem}
               onClick={onDistributeVertical}
-              title="Distribute Vertically"
+              disabled={!onDistributeVertical}
             >
               <DistributeVerticalIcon />
+              <span>Vertical</span>
             </button>
           </div>
         </div>

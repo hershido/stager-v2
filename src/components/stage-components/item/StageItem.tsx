@@ -5,6 +5,7 @@ import { useClipboardService } from "../../../services/clipboardService";
 import { useDocumentService } from "../../../services/documentService";
 import { AlignmentControls } from "../../common/AlignmentControls";
 import clsx from "clsx";
+import React from "react";
 import styles from "./StageItem.module.scss";
 
 // Icon component for keyboard shortcuts
@@ -348,21 +349,6 @@ export function StageItem({
     };
   };
 
-  // Create the alignment controls component
-  const alignmentContent = (
-    <AlignmentControls
-      onAlignLeft={handleAlignLeft}
-      onAlignCenter={handleAlignCenter}
-      onAlignRight={handleAlignRight}
-      onAlignTop={handleAlignTop}
-      onAlignMiddle={handleAlignMiddle}
-      onAlignBottom={handleAlignBottom}
-      showDistribution={selectedItemsCount >= 3}
-      onDistributeHorizontal={handleDistributeHorizontally}
-      onDistributeVertical={handleDistributeVertically}
-    />
-  );
-
   // Define menu items for the item context menu
   const itemMenuItems: MenuItemOrDivider[] = [
     {
@@ -388,7 +374,26 @@ export function StageItem({
     { type: "divider" as const },
     {
       id: "alignment",
-      content: alignmentContent,
+      label: "Alignment",
+      content: (
+        <AlignmentControls
+          onAlignLeft={handleAlignLeft}
+          onAlignCenter={handleAlignCenter}
+          onAlignRight={handleAlignRight}
+          onAlignTop={handleAlignTop}
+          onAlignMiddle={handleAlignMiddle}
+          onAlignBottom={handleAlignBottom}
+          showDistribution={selectedItemsCount > 2}
+          onDistributeHorizontal={
+            selectedItemsCount > 2 ? handleDistributeHorizontally : undefined
+          }
+          onDistributeVertical={
+            selectedItemsCount > 2 ? handleDistributeVertically : undefined
+          }
+        />
+      ),
+      onClick: () => {},
+      custom: true,
     },
     { type: "divider" as const },
     {

@@ -1,5 +1,4 @@
 import { ReactNode, useEffect, useRef } from "react";
-import clsx from "clsx";
 import styles from "./ContextMenu.module.scss";
 
 export interface MenuItem {
@@ -9,6 +8,7 @@ export interface MenuItem {
   disabled?: boolean;
   shortcut?: ReactNode;
   content?: ReactNode; // Custom content to render instead of default label/shortcut
+  custom?: boolean; // Flag to indicate this is a custom menu item
 }
 
 export type MenuItemOrDivider = MenuItem | { type: "divider" };
@@ -92,14 +92,15 @@ export function ContextMenu({
             isMenuItem(item) ? (
               <button
                 key={item.id}
-                className={clsx(styles.menuItem, {
-                  [styles.disabled]: item.disabled,
-                  [styles.customContent]: !!item.content,
-                })}
+                className={`${styles.menuItem} ${
+                  item.disabled ? styles.disabled : ""
+                } ${item.content ? styles.customContent : ""}`}
                 onClick={() => {
                   if (!item.disabled && item.onClick) {
                     item.onClick();
-                    onClose();
+                    if (!item.content) {
+                      onClose();
+                    }
                   }
                 }}
               >
