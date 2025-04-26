@@ -8,6 +8,7 @@ vi.mock("../StageControls.module.scss", () => ({
     stageControls: "stageControls",
     controlIcon: "controlIcon",
     active: "active",
+    shortcutIndicator: "shortcutIndicator",
   },
 }));
 
@@ -44,8 +45,8 @@ describe("StageControls", () => {
       />
     );
 
-    expect(screen.getByTitle("Toggle Grid Visibility")).toBeInTheDocument();
-    expect(screen.getByTitle("Toggle Snap to Grid")).toBeInTheDocument();
+    expect(screen.getByTitle("Toggle Grid Visibility (G)")).toBeInTheDocument();
+    expect(screen.getByTitle("Toggle Snap to Grid (S)")).toBeInTheDocument();
   });
 
   test("calls onToggleGrid when grid button is clicked", () => {
@@ -61,7 +62,7 @@ describe("StageControls", () => {
       />
     );
 
-    fireEvent.click(screen.getByTitle("Toggle Grid Visibility"));
+    fireEvent.click(screen.getByTitle("Toggle Grid Visibility (G)"));
 
     expect(onToggleGrid).toHaveBeenCalledTimes(1);
     expect(onToggleSnap).not.toHaveBeenCalled();
@@ -80,7 +81,7 @@ describe("StageControls", () => {
       />
     );
 
-    fireEvent.click(screen.getByTitle("Toggle Snap to Grid"));
+    fireEvent.click(screen.getByTitle("Toggle Snap to Grid (S)"));
 
     expect(onToggleSnap).toHaveBeenCalledTimes(1);
     expect(onToggleGrid).not.toHaveBeenCalled();
@@ -97,8 +98,8 @@ describe("StageControls", () => {
       />
     );
 
-    const gridButton = screen.getByTitle("Toggle Grid Visibility");
-    const snapButton = screen.getByTitle("Toggle Snap to Grid");
+    const gridButton = screen.getByTitle("Toggle Grid Visibility (G)");
+    const snapButton = screen.getByTitle("Toggle Snap to Grid (S)");
 
     // Checking if the active class is applied (via mocked clsx)
     expect(gridButton.className).toContain("active");
@@ -155,15 +156,33 @@ describe("StageControls", () => {
     );
 
     // Check grid button accessibility
-    const gridButton = screen.getByTitle("Toggle Grid Visibility");
+    const gridButton = screen.getByTitle("Toggle Grid Visibility (G)");
     const gridSpan = gridButton.querySelector("span");
     expect(gridSpan).toHaveAttribute("role", "img");
     expect(gridSpan).toHaveAttribute("aria-label", "Show Grid");
 
     // Check snap button accessibility
-    const snapButton = screen.getByTitle("Toggle Snap to Grid");
+    const snapButton = screen.getByTitle("Toggle Snap to Grid (S)");
     const snapSpan = snapButton.querySelector("span");
     expect(snapSpan).toHaveAttribute("role", "img");
     expect(snapSpan).toHaveAttribute("aria-label", "Snap to Grid");
+  });
+
+  test("renders keyboard shortcut indicators", () => {
+    render(
+      <StageControls
+        showGrid={true}
+        snapToGrid={true}
+        onToggleGrid={() => {}}
+        onToggleSnap={() => {}}
+      />
+    );
+
+    // Check if the shortcut indicators are rendered
+    const gridShortcut = screen.getByText("G");
+    const snapShortcut = screen.getByText("S");
+
+    expect(gridShortcut).toBeInTheDocument();
+    expect(snapShortcut).toBeInTheDocument();
   });
 });

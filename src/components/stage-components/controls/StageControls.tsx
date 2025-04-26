@@ -21,22 +21,24 @@ export function StageControls({
           [styles.active]: showGrid,
         })}
         onClick={onToggleGrid}
-        title="Toggle Grid Visibility"
+        title="Toggle Grid Visibility (G)"
       >
         <span role="img" aria-label="Show Grid">
           📏
         </span>
+        <div className={styles.shortcutIndicator}>G</div>
       </div>
       <div
         className={clsx(styles.controlIcon, {
           [styles.active]: snapToGrid,
         })}
         onClick={onToggleSnap}
-        title="Toggle Snap to Grid"
+        title="Toggle Snap to Grid (S)"
       >
         <span role="img" aria-label="Snap to Grid">
           🔒
         </span>
+        <div className={styles.shortcutIndicator}>S</div>
       </div>
     </div>
   );
