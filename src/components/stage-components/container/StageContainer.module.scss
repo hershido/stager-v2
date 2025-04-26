@@ -8,4 +8,9 @@
   justify-items: center;
   padding: 20px;
   box-sizing: border-box;
+
+  // Remove focus outline
+  &:focus {
+    outline: none;
+  }
 }

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Stage } from "../stage/Stage";
 import { StageControls } from "../controls/StageControls";
 import styles from "./StageContainer.module.scss";
@@ -6,6 +6,14 @@ import styles from "./StageContainer.module.scss";
 export function StageContainer() {
   const [showGrid, setShowGrid] = useState(true);
   const [snapToGrid, setSnapToGrid] = useState(true);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-focus the container on mount
+  useEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.focus();
+    }
+  }, []);
 
   // Toggle functions for grid visibility and snap-to-grid
   const toggleShowGrid = () => setShowGrid((prev) => !prev);
@@ -46,6 +54,7 @@ export function StageContainer() {
 
   return (
     <div
+      ref={containerRef}
       className={styles.stageContainer}
       tabIndex={0}
       onKeyDown={handleKeyDown}

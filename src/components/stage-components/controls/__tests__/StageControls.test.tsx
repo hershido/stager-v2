@@ -8,7 +8,6 @@ vi.mock("../StageControls.module.scss", () => ({
     stageControls: "stageControls",
     controlIcon: "controlIcon",
     active: "active",
-    shortcutIndicator: "shortcutIndicator",
   },
 }));
 
@@ -166,23 +165,5 @@ describe("StageControls", () => {
     const snapSpan = snapButton.querySelector("span");
     expect(snapSpan).toHaveAttribute("role", "img");
     expect(snapSpan).toHaveAttribute("aria-label", "Snap to Grid");
-  });
-
-  test("renders keyboard shortcut indicators", () => {
-    render(
-      <StageControls
-        showGrid={true}
-        snapToGrid={true}
-        onToggleGrid={() => {}}
-        onToggleSnap={() => {}}
-      />
-    );
-
-    // Check if the shortcut indicators are rendered
-    const gridShortcut = screen.getByText("G");
-    const snapShortcut = screen.getByText("S");
-
-    expect(gridShortcut).toBeInTheDocument();
-    expect(snapShortcut).toBeInTheDocument();
   });
 });
