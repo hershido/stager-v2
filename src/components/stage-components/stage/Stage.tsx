@@ -5,6 +5,7 @@ import { useContextMenu } from "../../hooks/useContextMenu";
 import { MenuItemOrDivider } from "../../common/ContextMenu";
 import { useClipboardService } from "../../../services/clipboardService";
 import { useStageState } from "./hooks/useStageState";
+import { useShortcut } from "../../../contexts/KeyboardContext";
 import styles from "./Stage.module.scss";
 import React, { useRef, useCallback, useState } from "react";
 
@@ -19,6 +20,8 @@ interface StageProps {
 }
 
 export function Stage({ showGrid, snapToGrid }: StageProps) {
+  console.log(`Stage render: ${new Date().toISOString()}`);
+
   const { document, documentService } = useDocumentService();
   const { clipboardService, clipboardItem, clipboardItems } =
     useClipboardService();
@@ -159,7 +162,7 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
     },
   });
 
-  // Paste an item from clipboard - moved after contextMenuState initialization
+  // Paste an item from clipboard
   const handlePasteItem = useCallback(() => {
     if (!hasClipboardItem() || !contextMenuState.relativePosition) return;
 
@@ -264,124 +267,154 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
     snapToGrid,
   ]);
 
-  // Handle keyboard events - moved below contextMenuState definition
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
+  // Register keyboard shortcuts using our new hook system
+
+  // Delete key - delete selected items
+  useShortcut(
+    "delete",
+    (e) => {
+      console.log("Delete triggered, items:", Array.from(selectedItems));
+      e.preventDefault();
+      selectedItems.forEach((id) => {
+        handleDeleteItem(id);
+      });
+    },
+    [selectedItems, handleDeleteItem]
+  );
+
+  // Also handle Backspace for delete
+  useShortcut(
+    "backspace",
+    (e) => {
       console.log(
-        "KeyDown event",
-        e.key,
-        "selected items size:",
-        selectedItems.size
+        "Backspace delete triggered, items:",
+        Array.from(selectedItems)
+      );
+      e.preventDefault();
+      selectedItems.forEach((id) => {
+        handleDeleteItem(id);
+      });
+    },
+    [selectedItems, handleDeleteItem]
+  );
+
+  // Select All - Ctrl+A
+  useShortcut(
+    "ctrl+a",
+    (e) => {
+      console.log("Select All triggered");
+      e.preventDefault();
+      selectAllItems();
+    },
+    [selectAllItems]
+  );
+
+  // Copy - Ctrl+C
+  useShortcut(
+    "ctrl+c",
+    (e) => {
+      console.log("Copy shortcut triggered");
+      if (selectedItems.size === 0) return;
+
+      console.log("Copy executing for items:", Array.from(selectedItems));
+      e.preventDefault();
+      const itemsToCopy = document.items.filter((item) =>
+        selectedItems.has(item.id)
+      );
+      copyItems(itemsToCopy);
+    },
+    [selectedItems, document.items, copyItems]
+  );
+
+  // Cut - Ctrl+X
+  useShortcut(
+    "ctrl+x",
+    (e) => {
+      console.log("Cut shortcut triggered");
+      if (selectedItems.size === 0) return;
+
+      console.log("Cut executing for items:", Array.from(selectedItems));
+      e.preventDefault();
+      const itemsToCut = document.items.filter((item) =>
+        selectedItems.has(item.id)
       );
 
-      // Delete key - delete selected items
-      if (e.key === "Delete" || e.key === "Backspace") {
-        console.log("Delete triggered, items:", Array.from(selectedItems));
-        selectedItems.forEach((id) => {
-          handleDeleteItem(id);
-        });
-      }
+      // Use the cutItems function from the ClipboardContext
+      cutItems(itemsToCut, handleDeleteItem);
+    },
+    [selectedItems, document.items, cutItems, handleDeleteItem]
+  );
 
-      // Check for keyboard shortcuts with Control/Command
-      const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+  // Paste - Ctrl+V
+  useShortcut(
+    "ctrl+v",
+    (e) => {
+      console.log("Paste shortcut triggered");
+      if (!hasClipboardItem()) return;
 
-      if (isCtrlOrCmd) {
-        // Select All - Ctrl/Cmd+A
-        if (e.key === "a") {
-          console.log("Select All triggered");
-          e.preventDefault();
-          selectAllItems();
+      console.log("Paste executing");
+      e.preventDefault();
+
+      // Use current mouse position for pasting
+      if (contextMenuState) {
+        // Check if mouse position is within stage bounds
+        const isInBounds =
+          mousePosition.x >= 0 &&
+          mousePosition.x <= document.stage.width &&
+          mousePosition.y >= 0 &&
+          mousePosition.y <= document.stage.height;
+
+        if (isInBounds) {
+          // Use the current mouse position if in bounds
+          contextMenuState.relativePosition = { ...mousePosition };
+        } else {
+          // Use center of stage if cursor is outside bounds
+          contextMenuState.relativePosition = {
+            x: document.stage.width / 2,
+            y: document.stage.height / 2,
+          };
         }
 
-        // Copy - Ctrl/Cmd+C
-        if (e.key === "c" && selectedItems.size > 0) {
-          console.log("Copy triggered, items:", Array.from(selectedItems));
-          e.preventDefault();
-          const itemsToCopy = document.items.filter((item) =>
-            selectedItems.has(item.id)
-          );
-          copyItems(itemsToCopy);
-        }
-
-        // Cut - Ctrl/Cmd+X
-        if (e.key === "x" && selectedItems.size > 0) {
-          console.log("Cut triggered, items:", Array.from(selectedItems));
-          e.preventDefault();
-          const itemsToCut = document.items.filter((item) =>
-            selectedItems.has(item.id)
-          );
-
-          // Use the cutItems function from the ClipboardContext
-          // This will copy to clipboard and then delete
-          cutItems(itemsToCut, handleDeleteItem);
-        }
-
-        // Paste - Ctrl/Cmd+V
-        if (e.key === "v" && hasClipboardItem()) {
-          console.log("Paste triggered");
-          e.preventDefault();
-
-          // Use current mouse position for pasting
-          if (contextMenuState) {
-            // Check if mouse position is within stage bounds
-            const isInBounds =
-              mousePosition.x >= 0 &&
-              mousePosition.x <= document.stage.width &&
-              mousePosition.y >= 0 &&
-              mousePosition.y <= document.stage.height;
-
-            if (isInBounds) {
-              // Use the current mouse position if in bounds
-              contextMenuState.relativePosition = { ...mousePosition };
-            } else {
-              // Use center of stage if cursor is outside bounds
-              contextMenuState.relativePosition = {
-                x: document.stage.width / 2,
-                y: document.stage.height / 2,
-              };
-            }
-
-            handlePasteItem();
-          }
-        }
-
-        // Duplicate - Ctrl/Cmd+D
-        if (e.key === "d" && selectedItems.size > 0) {
-          console.log("Duplicate triggered, items:", Array.from(selectedItems));
-          e.preventDefault();
-
-          const itemsToDuplicate = document.items.filter((item) =>
-            selectedItems.has(item.id)
-          );
-
-          // Create duplicates with offset position
-          itemsToDuplicate.forEach((item) => {
-            const newItem: StageItemType = {
-              ...item,
-              id: crypto.randomUUID(),
-              position: {
-                x: item.position.x + 20,
-                y: item.position.y + 20,
-              },
-            };
-            documentService.addItem(newItem);
-          });
-        }
+        handlePasteItem();
       }
     },
     [
-      selectedItems,
-      handleDeleteItem,
-      document.items,
-      copyItems,
-      cutItems,
       hasClipboardItem,
       handlePasteItem,
       contextMenuState,
       mousePosition,
       document.stage,
-      selectAllItems,
     ]
+  );
+
+  // Duplicate - Ctrl+D
+  useShortcut(
+    "ctrl+d",
+    (e) => {
+      console.log("Duplicate shortcut triggered");
+      if (selectedItems.size === 0) return;
+
+      console.log("Duplicate executing for items:", Array.from(selectedItems));
+      e.preventDefault();
+
+      const itemsToDuplicate = document.items.filter((item) =>
+        selectedItems.has(item.id)
+      );
+
+      // Create duplicates with offset position
+      itemsToDuplicate.forEach((item) => {
+        const newItem: StageItemType = {
+          ...item,
+          id: crypto.randomUUID(),
+          position: {
+            x: item.position.x + 20,
+            y: item.position.y + 20,
+          },
+        };
+        documentService.addItem(newItem);
+      });
+    },
+    [selectedItems, document.items, documentService]
   );
 
   return (
@@ -399,7 +432,6 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
         }}
         onClick={handleStageClick}
         onContextMenu={handleContextMenu}
-        onKeyDown={handleKeyDown}
         onMouseMove={handleMouseMove}
         onMouseDown={handleLassoStart}
       >

@@ -7,6 +7,21 @@ import { useContextMenu } from "../../../hooks/useContextMenu";
 import { useStageState } from "../hooks/useStageState";
 import { StageItem as StageItemType } from "../../../../types/document";
 
+// Create a module to store the shortcut handlers
+const shortcutHandlers: Record<string, (e: KeyboardEvent) => void> = {};
+
+// Create a function to trigger shortcuts
+const triggerShortcut = (key: string, event = {}) => {
+  if (shortcutHandlers[key]) {
+    shortcutHandlers[key]({
+      preventDefault: vi.fn(),
+      ...event,
+    } as unknown as KeyboardEvent);
+    return true;
+  }
+  return false;
+};
+
 // Mock the hooks and components
 vi.mock("../../../../services/documentService", () => ({
   useDocumentService: vi.fn(),
@@ -55,6 +70,13 @@ vi.mock("../../item/StageItem.module.scss", () => ({
     stageItem: "stageItem",
     selected: "selected",
   },
+}));
+
+// Mock the KeyboardContext module
+vi.mock("../../../../contexts/KeyboardContext", () => ({
+  useShortcut: vi.fn((key: string, handler: (e: KeyboardEvent) => void) => {
+    shortcutHandlers[key] = handler;
+  }),
 }));
 
 describe("Stage", () => {
@@ -368,7 +390,7 @@ describe("Stage", () => {
     stageElement.focus();
 
     // Test Copy (Ctrl+C)
-    fireEvent.keyDown(stageElement, { key: "c", ctrlKey: true });
+    triggerShortcut("ctrl+c");
 
     // Verify copy was called with the selected items
     expect(mockCopyItems).toHaveBeenCalledTimes(1);
@@ -413,7 +435,7 @@ describe("Stage", () => {
     stageElement.focus();
 
     // Test Copy (Ctrl+C)
-    fireEvent.keyDown(stageElement, { key: "c", ctrlKey: true });
+    triggerShortcut("ctrl+c");
 
     // Verify copy was called with one item
     expect(mockCopyItems).toHaveBeenCalledTimes(1);
@@ -456,7 +478,7 @@ describe("Stage", () => {
     stageElement.focus();
 
     // Test Cut (Ctrl+X)
-    fireEvent.keyDown(stageElement, { key: "x", ctrlKey: true });
+    triggerShortcut("ctrl+x");
 
     // Verify cut was called with the selected items and delete callback
     expect(mockCutItems).toHaveBeenCalledTimes(1);
@@ -502,7 +524,7 @@ describe("Stage", () => {
     stageElement.focus();
 
     // Test Cut (Ctrl+X)
-    fireEvent.keyDown(stageElement, { key: "x", ctrlKey: true });
+    triggerShortcut("ctrl+x");
 
     // Verify cut was called with one item and delete callback
     expect(mockCutItems).toHaveBeenCalledTimes(1);
@@ -530,7 +552,7 @@ describe("Stage", () => {
     // Focus the stage element first
     stageElement.focus();
 
-    fireEvent.keyDown(stageElement, { key: "Delete" });
+    triggerShortcut("delete");
 
     // Verify that handleDeleteItem was called for each selected item
     expect(mockHandleDeleteItem).toHaveBeenCalledTimes(2);
@@ -669,7 +691,7 @@ describe("Stage", () => {
     // Focus the stage element first
     stageElement.focus();
 
-    fireEvent.keyDown(stageElement, { key: "Delete" });
+    triggerShortcut("delete");
 
     // Verify that handleDeleteItem was called for the selected item
     expect(mockHandleDeleteItem).toHaveBeenCalledTimes(1);
@@ -703,14 +725,8 @@ describe("Stage", () => {
     // Render the stage
     render(<Stage showGrid={true} snapToGrid={true} />);
 
-    const stageElement = screen.getByTestId("stage");
-
     // Simulate Ctrl+V keyboard shortcut
-    fireEvent.keyDown(stageElement, {
-      key: "v",
-      ctrlKey: true,
-      metaKey: false,
-    });
+    triggerShortcut("ctrl+v");
 
     // Verify paste was triggered
     expect(mockDocumentService.addItem).toHaveBeenCalled();
@@ -762,10 +778,7 @@ describe("Stage", () => {
     });
 
     // Simulate Ctrl+V keyboard shortcut
-    fireEvent.keyDown(stageElement, {
-      key: "v",
-      ctrlKey: true,
-    });
+    triggerShortcut("ctrl+v");
 
     // Check that addItem was called with a position
     expect(mockDocumentService.addItem).toHaveBeenCalledWith(
@@ -808,14 +821,8 @@ describe("Stage", () => {
     // Simplify test by just verifying behavior works without mocking too many internals
     render(<Stage showGrid={true} snapToGrid={true} />);
 
-    // Get stage element
-    const stageElement = screen.getByTestId("stage");
-
     // Simulate keyboard shortcut for paste
-    fireEvent.keyDown(stageElement, {
-      key: "v",
-      ctrlKey: true,
-    });
+    triggerShortcut("ctrl+v");
 
     // Verify an item was added with a position (we're just checking that it works)
     expect(mockDocumentService.addItem).toHaveBeenCalledWith(
@@ -852,14 +859,8 @@ describe("Stage", () => {
 
     render(<Stage showGrid={true} snapToGrid={true} />);
 
-    // Get stage element
-    const stageElement = screen.getByTestId("stage");
-
     // Simulate Ctrl+A keyboard shortcut
-    fireEvent.keyDown(stageElement, {
-      key: "a",
-      ctrlKey: true,
-    });
+    triggerShortcut("ctrl+a");
 
     // Verify the selectAllItems function was called
     expect(mockSelectAllItems).toHaveBeenCalledTimes(1);
@@ -1009,14 +1010,10 @@ describe("Stage", () => {
       .mockReturnValueOnce("new-item-1")
       .mockReturnValueOnce("new-item-2");
 
-    render(<Stage showGrid={true} snapToGrid={false} />);
+    render(<Stage showGrid={false} snapToGrid={false} />);
 
     // Simulate Ctrl+D keyboard event
-    const stage = screen.getByTestId("stage");
-    fireEvent.keyDown(stage, {
-      key: "d",
-      ctrlKey: true, // Use ctrl for tests, but works with cmd on Mac too
-    });
+    triggerShortcut("ctrl+d");
 
     // Check correct items were duplicated
     expect(mockAddItem).toHaveBeenCalledTimes(2);

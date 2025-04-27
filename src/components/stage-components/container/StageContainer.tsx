@@ -1,6 +1,7 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Stage } from "../stage/Stage";
 import { StageControls } from "../controls/StageControls";
+import { useShortcut } from "../../../contexts/KeyboardContext";
 import styles from "./StageContainer.module.scss";
 
 export function StageContainer() {
@@ -8,57 +9,56 @@ export function StageContainer() {
   const [snapToGrid, setSnapToGrid] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Auto-focus the container on mount
+  // Toggle functions for grid visibility and snap-to-grid
+  const toggleShowGrid = useCallback(() => {
+    setShowGrid((prev) => !prev);
+    console.log(`Grid visibility ${!showGrid ? "enabled" : "disabled"}`);
+  }, [showGrid]);
+
+  const toggleSnapToGrid = useCallback(() => {
+    setSnapToGrid((prev) => !prev);
+    console.log(`Snap to grid ${!snapToGrid ? "enabled" : "disabled"}`);
+  }, [snapToGrid]);
+
+  // Log when the component mounts to verify shortcut registration timing
   useEffect(() => {
-    if (containerRef.current) {
-      containerRef.current.focus();
-    }
+    console.log("StageContainer mounted - registering shortcuts");
+    return () =>
+      console.log(
+        "StageContainer unmounted - shortcuts should be unregistered"
+      );
   }, []);
 
-  // Toggle functions for grid visibility and snap-to-grid
-  const toggleShowGrid = () => setShowGrid((prev) => !prev);
-  const toggleSnapToGrid = () => setSnapToGrid((prev) => !prev);
-
-  // Handle keyboard shortcuts for grid and snap toggles
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      // Only handle these shortcuts if they're not in an input element
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
-      ) {
-        return;
-      }
-
-      // Prevent interference with existing shortcuts
-      if (e.ctrlKey || e.metaKey || e.altKey) {
-        return;
-      }
-
-      // G key for toggling grid visibility
-      if (e.key === "g" || e.key === "G") {
-        e.preventDefault();
-        toggleShowGrid();
-        console.log(`Grid visibility ${!showGrid ? "enabled" : "disabled"}`);
-      }
-
-      // S key for toggling snap to grid
-      if (e.key === "s" || e.key === "S") {
-        e.preventDefault();
-        toggleSnapToGrid();
-        console.log(`Snap to grid ${!snapToGrid ? "enabled" : "disabled"}`);
-      }
+  // Register keyboard shortcuts using our hook
+  // G key for toggling grid visibility
+  useShortcut(
+    "g",
+    (e) => {
+      console.log("G shortcut triggered!");
+      e.preventDefault();
+      toggleShowGrid();
     },
-    [showGrid, snapToGrid]
-  );
+    [toggleShowGrid],
+    { priority: 10 }
+  ); // Higher priority to ensure it takes precedence
+
+  // S key for toggling snap to grid
+  useShortcut(
+    "s",
+    (e) => {
+      console.log("S shortcut triggered!");
+      e.preventDefault();
+      toggleSnapToGrid();
+    },
+    [toggleSnapToGrid],
+    { priority: 10 }
+  ); // Higher priority to ensure it takes precedence
+
+  // Log out which shortcuts are active in this component
+  console.log("StageContainer shortcuts: g, s");
 
   return (
-    <div
-      ref={containerRef}
-      className={styles.stageContainer}
-      tabIndex={0}
-      onKeyDown={handleKeyDown}
-    >
+    <div ref={containerRef} className={styles.stageContainer} tabIndex={0}>
       <StageControls
         showGrid={showGrid}
         snapToGrid={snapToGrid}

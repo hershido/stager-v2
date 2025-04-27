@@ -1,43 +1,64 @@
 import { useEffect } from "react";
 import { AppLayout } from "./components/layout/AppLayout";
+import { KeyboardProvider } from "./contexts/KeyboardContext";
 import { StageContainer } from "./components/stage-components/container/StageContainer";
 import "./App.scss";
 
 function App() {
-  // Debug the App component
+  // Debug the App component and keyboard events
   useEffect(() => {
-    console.log("App component mounted");
-    return () => console.log("App component unmounted");
+    console.log("App component mounted with KeyboardProvider");
+
+    // Debug listener to check if events reach the document level
+    const debugKeyDown = (e: KeyboardEvent) => {
+      console.log(`App debug: Key pressed at document level: ${e.key}`);
+    };
+
+    document.addEventListener("keydown", debugKeyDown);
+
+    return () => {
+      console.log("App component unmounted");
+      document.removeEventListener("keydown", debugKeyDown);
+    };
   }, []);
 
-  console.log("App component rendering");
-  const HeaderPlaceholder = () => (
-    <div style={{ padding: "20px", height: "100%" }}>
-      <h1>Header</h1>
-    </div>
-  );
+  // Add a custom wrapper for the KeyboardProvider to debug its initialization
+  const DebugKeyboardProvider = ({
+    children,
+  }: {
+    children: React.ReactNode;
+  }) => {
+    useEffect(() => {
+      console.log("KeyboardProvider mounted and initialized");
+      return () => console.log("KeyboardProvider unmounted");
+    }, []);
 
-  const SidebarPlaceholder = () => (
-    <div style={{ padding: "20px" }}>
-      <h2>Sidebar</h2>
-      <p>Items will go here</p>
-    </div>
-  );
-
-  const SidePanelPlaceholder = () => (
-    <div style={{ padding: "20px" }}>
-      <h2>Properties Panel</h2>
-      <p>Item properties will go here</p>
-    </div>
-  );
+    return <KeyboardProvider>{children}</KeyboardProvider>;
+  };
 
   return (
-    <AppLayout
-      header={<HeaderPlaceholder />}
-      sidebar={<SidebarPlaceholder />}
-      main={<StageContainer />}
-      sidePanel={<SidePanelPlaceholder />}
-    />
+    <DebugKeyboardProvider>
+      <AppLayout
+        header={
+          <div style={{ padding: "20px", height: "100%" }}>
+            <h1>Header</h1>
+          </div>
+        }
+        sidebar={
+          <div style={{ padding: "20px" }}>
+            <h2>Sidebar</h2>
+            <p>Items will go here</p>
+          </div>
+        }
+        main={<StageContainer />}
+        sidePanel={
+          <div style={{ padding: "20px" }}>
+            <h2>Properties Panel</h2>
+            <p>Item properties will go here</p>
+          </div>
+        }
+      />
+    </DebugKeyboardProvider>
   );
 }
 
