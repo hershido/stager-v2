@@ -47,6 +47,7 @@ export interface StageState {
   stageRect: DOMRect | null;
   initialItemPositions: DraggedItemsInitialState;
   selectedItemsPositions: SelectedItemsPositions;
+  isDuplicating: boolean;
 
   // Lasso selection state
   isLassoActive: boolean;
@@ -104,6 +105,9 @@ export function useStageState({
   // Track all items' current visual positions during drag
   const [selectedItemsPositions, setSelectedItemsPositions] =
     useState<SelectedItemsPositions>({});
+
+  // Track if we're duplicating items with Alt/Option key
+  const [isDuplicating, setIsDuplicating] = useState(false);
 
   // Lasso selection state
   const [isLassoActive, setIsLassoActive] = useState(false);
@@ -188,6 +192,9 @@ export function useStageState({
           stageElement.focus();
         }
       }
+
+      // Check if Alt/Option key is pressed for duplication
+      setIsDuplicating(e.altKey);
 
       // Calculate offset from the mouse to the item's position
       const rect = (e.target as HTMLElement).getBoundingClientRect();
@@ -721,16 +728,44 @@ export function useStageState({
 
   const handleOverlayMouseUp = useCallback(() => {
     if (isDragging) {
-      // Update all selected items' positions in the document
-      Object.entries(selectedItemsPositions).forEach(([itemId, position]) => {
-        if (position) {
-          documentService.updateItem(itemId, { position });
-        }
-      });
+      // If we're duplicating, create duplicates of the selected items
+      if (isDuplicating) {
+        const duplicates: StageItemType[] = [];
+        document.items.forEach((item) => {
+          if (selectedItems.has(item.id)) {
+            const visualPosition =
+              selectedItemsPositions[item.id] || item.position;
+
+            // Create a duplicate with the new position
+            const duplicate: StageItemType = {
+              ...item,
+              id: crypto.randomUUID(),
+              position: { ...visualPosition },
+            };
+            duplicates.push(duplicate);
+          }
+        });
+
+        // Update the document with the duplicates
+        duplicates.forEach((item) => {
+          documentService.addItem(item);
+        });
+
+        // Update selection to be the newly created duplicates
+        setSelectedItems(new Set(duplicates.map((item) => item.id)));
+      } else {
+        // If not duplicating, update the positions of the dragged items
+        Object.entries(selectedItemsPositions).forEach(([itemId, position]) => {
+          if (position) {
+            documentService.updateItem(itemId, { position });
+          }
+        });
+      }
     }
 
     // Reset drag state
     setIsDragging(false);
+    setIsDuplicating(false);
     setDraggedItem(null);
     setStageRect(null);
     setInitialItemPositions({});
@@ -738,7 +773,14 @@ export function useStageState({
 
     // Clear alignment guides
     setAlignmentGuides([]);
-  }, [documentService, isDragging, selectedItemsPositions]);
+  }, [
+    documentService,
+    isDragging,
+    isDuplicating,
+    selectedItems,
+    selectedItemsPositions,
+    document.items,
+  ]);
 
   // Delete an item
   const handleDeleteItem = useCallback(
@@ -787,11 +829,24 @@ export function useStageState({
 
   const getItemVisualPosition = useCallback(
     (itemId: string): Position | null => {
+      // During duplicating, original items stay in place
+      if (isDuplicating) {
+        // Only move the items that are being duplicated
+        if (isDragging && selectedItemsPositions[itemId]) {
+          const originalPosition = initialItemPositions[itemId];
+          // If this is an original item (not a duplicate), return null to keep it in place
+          if (originalPosition) {
+            return null;
+          }
+        }
+      }
+
+      // For normal dragging or items not being duplicated
       return isDragging && selectedItemsPositions[itemId]
         ? selectedItemsPositions[itemId]
         : null;
     },
-    [isDragging, selectedItemsPositions]
+    [isDragging, isDuplicating, selectedItemsPositions, initialItemPositions]
   );
 
   // Helper function to calculate lasso rectangle from start and end points
@@ -955,6 +1010,7 @@ export function useStageState({
     stageRect,
     initialItemPositions,
     selectedItemsPositions,
+    isDuplicating,
     isLassoActive,
     lassoStart,
     lassoEnd,

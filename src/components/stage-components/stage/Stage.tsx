@@ -37,6 +37,7 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
     isLassoActive,
     lassoRect,
     alignmentGuides,
+    isDuplicating,
   } = state;
 
   const {
@@ -825,6 +826,7 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
             item={item}
             isDragged={isDragging && isItemSelected(item.id)}
             isSelected={isItemSelected(item.id)}
+            isDuplicating={isDuplicating && isItemSelected(item.id)}
             dragVisualPosition={getItemVisualPosition(item.id)}
             onMouseDown={handleMouseDown}
             onDelete={handleDeleteItem}
@@ -835,6 +837,37 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
             }
           />
         ))}
+
+        {/* Show ghost duplicates during duplication */}
+        {isDragging && isDuplicating && (
+          <>
+            {Array.from(selectedItems).map((itemId) => {
+              const item = document.items.find((i) => i.id === itemId);
+              const position = state.selectedItemsPositions[itemId];
+              if (item && position) {
+                return (
+                  <StageItem
+                    key={`duplicate-${itemId}`}
+                    item={{
+                      ...item,
+                      id: `duplicate-${itemId}`,
+                    }}
+                    isDragged={true}
+                    isSelected={true}
+                    isDuplicating={true}
+                    dragVisualPosition={position}
+                    onMouseDown={() => {}} // No-op for ghost items
+                    onDelete={() => {}} // No-op for ghost items
+                    onFlip={() => {}} // No-op for ghost items
+                    selectedItemsCount={selectedItems.size}
+                    getSelectedItems={() => []}
+                  />
+                );
+              }
+              return null;
+            })}
+          </>
+        )}
 
         {/* Alignment guides - only shown during dragging */}
         {isDragging &&

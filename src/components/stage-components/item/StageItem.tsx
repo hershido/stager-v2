@@ -17,6 +17,7 @@ interface StageItemProps {
   item: StageItemType;
   isDragged: boolean;
   isSelected?: boolean;
+  isDuplicating?: boolean;
   dragVisualPosition: { x: number; y: number } | null;
   onMouseDown: (e: React.MouseEvent, itemId: string) => void;
   onDelete: (itemId: string) => void;
@@ -29,6 +30,7 @@ export function StageItem({
   item,
   isDragged,
   isSelected = false,
+  isDuplicating = false,
   dragVisualPosition,
   onMouseDown,
   onDelete,
@@ -485,6 +487,7 @@ export function StageItem({
       <div
         className={clsx(styles.stageItem, {
           [styles.selected]: isSelected,
+          [styles.duplicating]: isDuplicating,
         })}
         style={style}
         onMouseDown={(e) => onMouseDown(e, item.id)}
