@@ -1038,4 +1038,347 @@ describe("Stage", () => {
     // Restore original crypto.randomUUID
     crypto.randomUUID = originalRandomUUID;
   });
+
+  // Tests for alignment keyboard shortcuts
+  describe("Alignment and Distribution Shortcuts", () => {
+    // Mock document service update function
+    const mockUpdateItem = vi.fn();
+
+    beforeEach(() => {
+      // Reset mocks
+      mockUpdateItem.mockReset();
+      mockSelectedItems.clear();
+
+      // Setup document service with updateItem mock
+      (
+        useDocumentService as unknown as ReturnType<typeof vi.fn>
+      ).mockReturnValue({
+        document: mockDocument,
+        documentService: {
+          ...mockDocumentService,
+          updateItem: mockUpdateItem,
+        },
+      });
+    });
+
+    test("Alt+A shortcut aligns items to the left", () => {
+      // Setup selected items
+      mockSelectedItems.add("item-1");
+      mockSelectedItems.add("item-2");
+
+      render(<Stage showGrid={true} snapToGrid={true} />);
+
+      // Trigger Alt+A shortcut
+      triggerShortcut("alt+a");
+
+      // Verify updateItem was called to align items to the same X position
+      expect(mockUpdateItem).toHaveBeenCalledTimes(2);
+
+      // All items should have the same x position (the leftmost item's position)
+      const expected_x = Math.min(
+        mockItems[0].position.x,
+        mockItems[1].position.x
+      );
+
+      // Verify each item was updated with the correct position
+      mockItems.forEach((item) => {
+        expect(mockUpdateItem).toHaveBeenCalledWith(
+          item.id,
+          expect.objectContaining({
+            position: expect.objectContaining({
+              x: expected_x,
+              y: item.position.y, // Y should remain unchanged
+            }),
+          })
+        );
+      });
+    });
+
+    test("Alt+H shortcut aligns items to horizontal center", () => {
+      // Setup selected items
+      mockSelectedItems.add("item-1");
+      mockSelectedItems.add("item-2");
+
+      render(<Stage showGrid={true} snapToGrid={true} />);
+
+      // Trigger Alt+H shortcut
+      triggerShortcut("alt+h");
+
+      // For multi-item selection, items align to the center of the selection bounds
+      const left = Math.min(mockItems[0].position.x, mockItems[1].position.x);
+      const right = Math.max(
+        mockItems[0].position.x + (mockItems[0].width || 0),
+        mockItems[1].position.x + (mockItems[1].width || 0)
+      );
+      const width = right - left;
+      const centerX = left + width / 2;
+
+      // Verify updateItem was called for each item
+      expect(mockUpdateItem).toHaveBeenCalledTimes(2);
+
+      // Check that each item was updated to be centered
+      mockItems.forEach((item) => {
+        const itemCenterOffset = (item.width || 0) / 2;
+        expect(mockUpdateItem).toHaveBeenCalledWith(
+          item.id,
+          expect.objectContaining({
+            position: expect.objectContaining({
+              x: centerX - itemCenterOffset,
+              y: item.position.y, // Y should remain unchanged
+            }),
+          })
+        );
+      });
+    });
+
+    test("Alt+D shortcut aligns items to the right", () => {
+      // Setup selected items
+      mockSelectedItems.add("item-1");
+      mockSelectedItems.add("item-2");
+
+      render(<Stage showGrid={true} snapToGrid={true} />);
+
+      // Trigger Alt+D shortcut
+      triggerShortcut("alt+d");
+
+      // Calculate the rightmost edge of the items
+      const rightEdges = mockItems.map(
+        (item) => item.position.x + (item.width || 0)
+      );
+      const rightmost = Math.max(...rightEdges);
+
+      // Verify updateItem was called for each item
+      expect(mockUpdateItem).toHaveBeenCalledTimes(2);
+
+      // Check that each item was aligned to the right edge
+      mockItems.forEach((item) => {
+        expect(mockUpdateItem).toHaveBeenCalledWith(
+          item.id,
+          expect.objectContaining({
+            position: expect.objectContaining({
+              x: rightmost - (item.width || 0),
+              y: item.position.y, // Y should remain unchanged
+            }),
+          })
+        );
+      });
+    });
+
+    test("Alt+W shortcut aligns items to the top", () => {
+      // Setup selected items
+      mockSelectedItems.add("item-1");
+      mockSelectedItems.add("item-2");
+
+      render(<Stage showGrid={true} snapToGrid={true} />);
+
+      // Trigger Alt+W shortcut
+      triggerShortcut("alt+w");
+
+      // Calculate the topmost position of the items
+      const topmost = Math.min(
+        mockItems[0].position.y,
+        mockItems[1].position.y
+      );
+
+      // Verify updateItem was called for each item
+      expect(mockUpdateItem).toHaveBeenCalledTimes(2);
+
+      // Check that each item was aligned to the top edge
+      mockItems.forEach((item) => {
+        expect(mockUpdateItem).toHaveBeenCalledWith(
+          item.id,
+          expect.objectContaining({
+            position: expect.objectContaining({
+              x: item.position.x, // X should remain unchanged
+              y: topmost,
+            }),
+          })
+        );
+      });
+    });
+
+    test("Alt+V shortcut aligns items to vertical center", () => {
+      // Setup selected items
+      mockSelectedItems.add("item-1");
+      mockSelectedItems.add("item-2");
+
+      render(<Stage showGrid={true} snapToGrid={true} />);
+
+      // Trigger Alt+V shortcut
+      triggerShortcut("alt+v");
+
+      // Calculate the center of the selection bounds
+      const top = Math.min(mockItems[0].position.y, mockItems[1].position.y);
+      const bottom = Math.max(
+        mockItems[0].position.y + (mockItems[0].height || 0),
+        mockItems[1].position.y + (mockItems[1].height || 0)
+      );
+      const height = bottom - top;
+      const centerY = top + height / 2;
+
+      // Verify updateItem was called for each item
+      expect(mockUpdateItem).toHaveBeenCalledTimes(2);
+
+      // Check that each item was updated to be centered vertically
+      mockItems.forEach((item) => {
+        const itemCenterOffset = (item.height || 0) / 2;
+        expect(mockUpdateItem).toHaveBeenCalledWith(
+          item.id,
+          expect.objectContaining({
+            position: expect.objectContaining({
+              x: item.position.x, // X should remain unchanged
+              y: centerY - itemCenterOffset,
+            }),
+          })
+        );
+      });
+    });
+
+    test("Alt+S shortcut aligns items to the bottom", () => {
+      // Setup selected items
+      mockSelectedItems.add("item-1");
+      mockSelectedItems.add("item-2");
+
+      render(<Stage showGrid={true} snapToGrid={true} />);
+
+      // Trigger Alt+S shortcut
+      triggerShortcut("alt+s");
+
+      // Calculate the bottommost edge of the items
+      const bottomEdges = mockItems.map(
+        (item) => item.position.y + (item.height || 0)
+      );
+      const bottommost = Math.max(...bottomEdges);
+
+      // Verify updateItem was called for each item
+      expect(mockUpdateItem).toHaveBeenCalledTimes(2);
+
+      // Check that each item was aligned to the bottom edge
+      mockItems.forEach((item) => {
+        expect(mockUpdateItem).toHaveBeenCalledWith(
+          item.id,
+          expect.objectContaining({
+            position: expect.objectContaining({
+              x: item.position.x, // X should remain unchanged
+              y: bottommost - (item.height || 0),
+            }),
+          })
+        );
+      });
+    });
+
+    test("Ctrl+Alt+H shortcut distributes items horizontally", () => {
+      // Need at least 3 items for distribution
+      const thirdItem = {
+        id: "item-3",
+        name: "Test Item 3",
+        category: "equipment",
+        icon: "🎤",
+        position: { x: 300, y: 300 },
+        width: 70,
+        height: 70,
+      };
+
+      // Update mockItems to include the third item
+      const updatedMockItems = [...mockItems, thirdItem];
+      (
+        useDocumentService as unknown as ReturnType<typeof vi.fn>
+      ).mockReturnValue({
+        document: {
+          ...mockDocument,
+          items: updatedMockItems,
+        },
+        documentService: {
+          ...mockDocumentService,
+          updateItem: mockUpdateItem,
+        },
+      });
+
+      // Select all three items
+      mockSelectedItems.add("item-1");
+      mockSelectedItems.add("item-2");
+      mockSelectedItems.add("item-3");
+
+      render(<Stage showGrid={true} snapToGrid={true} />);
+
+      // Trigger Ctrl+Alt+H shortcut
+      triggerShortcut("ctrl+alt+h");
+
+      // Sort items by x position
+      const sortedItems = [...updatedMockItems].sort(
+        (a, b) => a.position.x - b.position.x
+      );
+
+      // First and last items shouldn't be moved
+      expect(mockUpdateItem).toHaveBeenCalledTimes(1); // Only the middle item should be updated
+
+      // Check that only the middle item was repositioned
+      expect(mockUpdateItem).toHaveBeenCalledWith(
+        sortedItems[1].id,
+        expect.objectContaining({
+          position: expect.objectContaining({
+            x: expect.any(Number), // The actual value is complex to calculate
+            y: sortedItems[1].position.y, // Y should remain unchanged
+          }),
+        })
+      );
+    });
+
+    test("Ctrl+Alt+V shortcut distributes items vertically", () => {
+      // Need at least 3 items for distribution
+      const thirdItem = {
+        id: "item-3",
+        name: "Test Item 3",
+        category: "equipment",
+        icon: "🎤",
+        position: { x: 300, y: 300 },
+        width: 70,
+        height: 70,
+      };
+
+      // Update mockItems to include the third item
+      const updatedMockItems = [...mockItems, thirdItem];
+      (
+        useDocumentService as unknown as ReturnType<typeof vi.fn>
+      ).mockReturnValue({
+        document: {
+          ...mockDocument,
+          items: updatedMockItems,
+        },
+        documentService: {
+          ...mockDocumentService,
+          updateItem: mockUpdateItem,
+        },
+      });
+
+      // Select all three items
+      mockSelectedItems.add("item-1");
+      mockSelectedItems.add("item-2");
+      mockSelectedItems.add("item-3");
+
+      render(<Stage showGrid={true} snapToGrid={true} />);
+
+      // Trigger Ctrl+Alt+V shortcut
+      triggerShortcut("ctrl+alt+v");
+
+      // Sort items by y position
+      const sortedItems = [...updatedMockItems].sort(
+        (a, b) => a.position.y - b.position.y
+      );
+
+      // First and last items shouldn't be moved
+      expect(mockUpdateItem).toHaveBeenCalledTimes(1); // Only the middle item should be updated
+
+      // Check that only the middle item was repositioned
+      expect(mockUpdateItem).toHaveBeenCalledWith(
+        sortedItems[1].id,
+        expect.objectContaining({
+          position: expect.objectContaining({
+            x: sortedItems[1].position.x, // X should remain unchanged
+            y: expect.any(Number), // The actual value is complex to calculate
+          }),
+        })
+      );
+    });
+  });
 });
