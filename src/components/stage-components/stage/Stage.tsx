@@ -31,7 +31,13 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
   const [state, actions] = useStageState({ snapToGrid });
 
   // Extract state values and actions we need
-  const { selectedItems, isDragging, isLassoActive, lassoRect } = state;
+  const {
+    selectedItems,
+    isDragging,
+    isLassoActive,
+    lassoRect,
+    alignmentGuides,
+  } = state;
 
   const {
     handleStageClick,
@@ -417,6 +423,373 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
     [selectedItems, document.items, documentService]
   );
 
+  // Alignment and Distribution Shortcuts
+  // Add debug message to show when these shortcuts are registered
+  console.log("Registering alignment shortcuts in Stage component");
+
+  // Align Left - Option + A
+  useShortcut(
+    "alt+a",
+    (e) => {
+      console.log("Align Left shortcut triggered");
+      if (selectedItems.size === 0) return;
+
+      e.preventDefault();
+
+      const selectedItemsList = document.items.filter((item) =>
+        selectedItems.has(item.id)
+      );
+
+      if (selectedItems.size === 1) {
+        // Single item - align to left edge of stage
+        const item = selectedItemsList[0];
+        documentService.updateItem(item.id, {
+          position: {
+            ...item.position,
+            x: 0,
+          },
+        });
+      } else {
+        // Multi-select - align to leftmost item
+        const leftmost = Math.min(
+          ...selectedItemsList.map((item) => item.position.x)
+        );
+
+        selectedItemsList.forEach((item) => {
+          documentService.updateItem(item.id, {
+            position: {
+              ...item.position,
+              x: leftmost,
+            },
+          });
+        });
+      }
+    },
+    [selectedItems, document.items, documentService],
+    { priority: 20 } // Set high priority for alignment shortcuts
+  );
+
+  // Align Center - Option + H
+  useShortcut(
+    "alt+h",
+    (e) => {
+      console.log("Align Center shortcut triggered");
+      if (selectedItems.size === 0) return;
+
+      e.preventDefault();
+
+      const selectedItemsList = document.items.filter((item) =>
+        selectedItems.has(item.id)
+      );
+
+      if (selectedItems.size === 1) {
+        // Single item - center on stage
+        const item = selectedItemsList[0];
+        const stageWidth = document.stage.width;
+        const itemWidth = item.width || 0;
+
+        documentService.updateItem(item.id, {
+          position: {
+            ...item.position,
+            x: (stageWidth - itemWidth) / 2,
+          },
+        });
+      } else {
+        // Multi-select - align to center of selection
+        const getBoundsOfItems = (items: StageItemType[]) => {
+          const left = Math.min(...items.map((i) => i.position.x));
+          const right = Math.max(
+            ...items.map((i) => i.position.x + (i.width || 0))
+          );
+          const width = right - left;
+          return { left, width };
+        };
+
+        const bounds = getBoundsOfItems(selectedItemsList);
+        const centerX = bounds.left + bounds.width / 2;
+
+        selectedItemsList.forEach((item) => {
+          const itemCenterOffset = (item.width || 0) / 2;
+          documentService.updateItem(item.id, {
+            position: {
+              ...item.position,
+              x: centerX - itemCenterOffset,
+            },
+          });
+        });
+      }
+    },
+    [selectedItems, document.items, documentService, document.stage.width]
+  );
+
+  // Align Right - Option + D
+  useShortcut(
+    "alt+d",
+    (e) => {
+      console.log("Align Right shortcut triggered");
+      if (selectedItems.size === 0) return;
+
+      e.preventDefault();
+
+      const selectedItemsList = document.items.filter((item) =>
+        selectedItems.has(item.id)
+      );
+
+      if (selectedItems.size === 1) {
+        // Single item - align to right edge of stage
+        const item = selectedItemsList[0];
+        const stageWidth = document.stage.width;
+        const itemWidth = item.width || 0;
+
+        documentService.updateItem(item.id, {
+          position: {
+            ...item.position,
+            x: stageWidth - itemWidth,
+          },
+        });
+      } else {
+        // Multi-select - align to rightmost item
+        const rightEdges = selectedItemsList.map(
+          (item) => item.position.x + (item.width || 0)
+        );
+        const rightmost = Math.max(...rightEdges);
+
+        selectedItemsList.forEach((item) => {
+          documentService.updateItem(item.id, {
+            position: {
+              ...item.position,
+              x: rightmost - (item.width || 0),
+            },
+          });
+        });
+      }
+    },
+    [selectedItems, document.items, documentService, document.stage.width]
+  );
+
+  // Align Top - Option + W
+  useShortcut(
+    "alt+w",
+    (e) => {
+      console.log("Align Top shortcut triggered");
+      if (selectedItems.size === 0) return;
+
+      e.preventDefault();
+
+      const selectedItemsList = document.items.filter((item) =>
+        selectedItems.has(item.id)
+      );
+
+      if (selectedItems.size === 1) {
+        // Single item - align to top edge of stage
+        const item = selectedItemsList[0];
+        documentService.updateItem(item.id, {
+          position: {
+            ...item.position,
+            y: 0,
+          },
+        });
+      } else {
+        // Multi-select - align to topmost item
+        const topmost = Math.min(
+          ...selectedItemsList.map((item) => item.position.y)
+        );
+
+        selectedItemsList.forEach((item) => {
+          documentService.updateItem(item.id, {
+            position: {
+              ...item.position,
+              y: topmost,
+            },
+          });
+        });
+      }
+    },
+    [selectedItems, document.items, documentService]
+  );
+
+  // Align Vertical Centers - Option + V
+  useShortcut(
+    "alt+v",
+    (e) => {
+      console.log("Align Vertical Centers shortcut triggered");
+      if (selectedItems.size === 0) return;
+
+      e.preventDefault();
+
+      const selectedItemsList = document.items.filter((item) =>
+        selectedItems.has(item.id)
+      );
+
+      if (selectedItems.size === 1) {
+        // Single item - center vertically on stage
+        const item = selectedItemsList[0];
+        const stageHeight = document.stage.height;
+        const itemHeight = item.height || 0;
+
+        documentService.updateItem(item.id, {
+          position: {
+            ...item.position,
+            y: (stageHeight - itemHeight) / 2,
+          },
+        });
+      } else {
+        // Multi-select - align to vertical center of selection
+        const getBoundsOfItems = (items: StageItemType[]) => {
+          const top = Math.min(...items.map((i) => i.position.y));
+          const bottom = Math.max(
+            ...items.map((i) => i.position.y + (i.height || 0))
+          );
+          const height = bottom - top;
+          return { top, height };
+        };
+
+        const bounds = getBoundsOfItems(selectedItemsList);
+        const centerY = bounds.top + bounds.height / 2;
+
+        selectedItemsList.forEach((item) => {
+          const itemCenterOffset = (item.height || 0) / 2;
+          documentService.updateItem(item.id, {
+            position: {
+              ...item.position,
+              y: centerY - itemCenterOffset,
+            },
+          });
+        });
+      }
+    },
+    [selectedItems, document.items, documentService, document.stage.height]
+  );
+
+  // Align Bottom - Option + S
+  useShortcut(
+    "alt+s",
+    (e) => {
+      console.log("Align Bottom shortcut triggered");
+      if (selectedItems.size === 0) return;
+
+      e.preventDefault();
+
+      const selectedItemsList = document.items.filter((item) =>
+        selectedItems.has(item.id)
+      );
+
+      if (selectedItems.size === 1) {
+        // Single item - align to bottom edge of stage
+        const item = selectedItemsList[0];
+        const stageHeight = document.stage.height;
+        const itemHeight = item.height || 0;
+
+        documentService.updateItem(item.id, {
+          position: {
+            ...item.position,
+            y: stageHeight - itemHeight,
+          },
+        });
+      } else {
+        // Multi-select - align to bottommost item
+        const bottomEdges = selectedItemsList.map(
+          (item) => item.position.y + (item.height || 0)
+        );
+        const bottommost = Math.max(...bottomEdges);
+
+        selectedItemsList.forEach((item) => {
+          documentService.updateItem(item.id, {
+            position: {
+              ...item.position,
+              y: bottommost - (item.height || 0),
+            },
+          });
+        });
+      }
+    },
+    [selectedItems, document.items, documentService, document.stage.height]
+  );
+
+  // Distribute Horizontal Spacing - Ctrl + Option + H
+  useShortcut(
+    "ctrl+alt+h",
+    (e) => {
+      console.log("Distribute Horizontal Spacing shortcut triggered");
+      if (selectedItems.size < 3) return; // Need at least 3 items to distribute
+
+      e.preventDefault();
+
+      const selectedItemsList = document.items.filter((item) =>
+        selectedItems.has(item.id)
+      );
+
+      // Sort items by their x position
+      const sortedItems = [...selectedItemsList].sort(
+        (a, b) => a.position.x - b.position.x
+      );
+
+      // Calculate total available space
+      const leftmostItem = sortedItems[0];
+      const rightmostItem = sortedItems[sortedItems.length - 1];
+      const leftEdge = leftmostItem.position.x + (leftmostItem.width || 0);
+      const rightEdge = rightmostItem.position.x;
+
+      const totalSpace = rightEdge - leftEdge;
+      const itemCount = sortedItems.length - 2; // Exclude first and last items
+      const spacing = totalSpace / (itemCount + 1);
+
+      // Skip first and last items as they stay in place
+      for (let i = 1; i < sortedItems.length - 1; i++) {
+        const currentItem = sortedItems[i];
+        documentService.updateItem(currentItem.id, {
+          position: {
+            ...currentItem.position,
+            x: leftEdge + spacing * i - (currentItem.width || 0) / 2,
+          },
+        });
+      }
+    },
+    [selectedItems, document.items, documentService]
+  );
+
+  // Distribute Vertical Spacing - Ctrl + Option + V
+  useShortcut(
+    "ctrl+alt+v",
+    (e) => {
+      console.log("Distribute Vertical Spacing shortcut triggered");
+      if (selectedItems.size < 3) return; // Need at least 3 items to distribute
+
+      e.preventDefault();
+
+      const selectedItemsList = document.items.filter((item) =>
+        selectedItems.has(item.id)
+      );
+
+      // Sort items by their y position
+      const sortedItems = [...selectedItemsList].sort(
+        (a, b) => a.position.y - b.position.y
+      );
+
+      // Calculate total available space
+      const topmostItem = sortedItems[0];
+      const bottommostItem = sortedItems[sortedItems.length - 1];
+      const topEdge = topmostItem.position.y + (topmostItem.height || 0);
+      const bottomEdge = bottommostItem.position.y;
+
+      const totalSpace = bottomEdge - topEdge;
+      const itemCount = sortedItems.length - 2; // Exclude first and last items
+      const spacing = totalSpace / (itemCount + 1);
+
+      // Skip first and last items as they stay in place
+      for (let i = 1; i < sortedItems.length - 1; i++) {
+        const currentItem = sortedItems[i];
+        documentService.updateItem(currentItem.id, {
+          position: {
+            ...currentItem.position,
+            y: topEdge + spacing * i - (currentItem.height || 0) / 2,
+          },
+        });
+      }
+    },
+    [selectedItems, document.items, documentService]
+  );
+
   return (
     <>
       <div
@@ -462,6 +835,30 @@ export function Stage({ showGrid, snapToGrid }: StageProps) {
             }
           />
         ))}
+
+        {/* Alignment guides - only shown during dragging */}
+        {isDragging &&
+          alignmentGuides?.map((guide, index) => (
+            <div
+              key={`guide-${index}`}
+              className={styles.alignmentGuide}
+              style={{
+                [guide.orientation === "horizontal"
+                  ? "top"
+                  : "left"]: `${guide.position}px`,
+                [guide.orientation === "horizontal" ? "width" : "height"]:
+                  "100%",
+                [guide.orientation === "horizontal" ? "height" : "width"]:
+                  "1px",
+                [guide.orientation === "horizontal" ? "left" : "top"]:
+                  guide.start !== undefined ? `${guide.start}px` : "0",
+                [guide.orientation === "horizontal" ? "width" : "height"]:
+                  guide.start !== undefined && guide.end !== undefined
+                    ? `${guide.end - guide.start}px`
+                    : "100%",
+              }}
+            />
+          ))}
 
         {/* Lasso selection rectangle */}
         {isLassoActive && lassoRect && (

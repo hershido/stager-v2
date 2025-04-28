@@ -400,4 +400,73 @@ describe("useStageState", () => {
     // But selection remains
     expect(result.current[0].selectedItems.size).toBe(2);
   });
+
+  test("alignmentGuides should be initialized as an empty array", () => {
+    const { result } = renderHook(() => useStageState({ snapToGrid: true }));
+    const [state] = result.current;
+
+    expect(state.alignmentGuides).toEqual([]);
+  });
+
+  test("handleMouseDown should clear alignment guides", () => {
+    const { result } = renderHook(() => useStageState({ snapToGrid: true }));
+
+    // Mock the state to have some alignment guides initially
+    act(() => {
+      const state = result.current[0];
+      state.alignmentGuides = [{ orientation: "horizontal", position: 100 }];
+    });
+
+    // Verify guides are present
+    expect(result.current[0].alignmentGuides.length).toBe(1);
+
+    // Trigger mouse down on an item
+    act(() => {
+      const [, actions] = result.current;
+      const mockElement = createMockElement();
+      const mockEvent = {
+        button: 0, // Left click
+        target: mockElement,
+        currentTarget: mockElement,
+        stopPropagation: vi.fn(),
+        preventDefault: vi.fn(),
+        shiftKey: false,
+        clientX: 150,
+        clientY: 150,
+      } as unknown as React.MouseEvent;
+
+      actions.handleMouseDown(mockEvent, "item-1");
+    });
+
+    // Alignment guides should be cleared
+    expect(result.current[0].alignmentGuides).toEqual([]);
+  });
+
+  test("handleOverlayMouseUp should clear alignment guides", () => {
+    const { result } = renderHook(() => useStageState({ snapToGrid: true }));
+
+    // Setup dragging state and alignment guides
+    act(() => {
+      const state = result.current[0];
+      state.isDragging = true;
+      state.alignmentGuides = [
+        { orientation: "vertical", position: 200 },
+        { orientation: "horizontal", position: 150 },
+      ];
+      state.selectedItemsPositions = { "item-1": { x: 100, y: 100 } };
+    });
+
+    // Verify guides are present
+    expect(result.current[0].alignmentGuides.length).toBe(2);
+
+    // Trigger mouse up to end dragging
+    act(() => {
+      const [, actions] = result.current;
+      actions.handleOverlayMouseUp();
+    });
+
+    // Alignment guides should be cleared
+    expect(result.current[0].alignmentGuides).toEqual([]);
+    expect(result.current[0].isDragging).toBe(false);
+  });
 });

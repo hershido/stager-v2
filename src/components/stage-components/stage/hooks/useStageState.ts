@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { useDocumentService } from "../../../../services/documentService";
+import { StageItem as StageItemType } from "../../../../types/document";
 
 // Types
 interface Position {
@@ -23,6 +24,14 @@ interface LassoRect {
   height: number;
 }
 
+// Add interface for alignment guides
+interface AlignmentGuide {
+  orientation: "horizontal" | "vertical";
+  position: number;
+  start?: number;
+  end?: number;
+}
+
 export interface StageStateProps {
   snapToGrid: boolean;
 }
@@ -44,6 +53,9 @@ export interface StageState {
   lassoStart: Position | null;
   lassoEnd: Position | null;
   lassoRect: LassoRect | null;
+
+  // Alignment guides state
+  alignmentGuides: AlignmentGuide[];
 }
 
 export interface StageStateActions {
@@ -98,6 +110,9 @@ export function useStageState({
   const [lassoStart, setLassoStart] = useState<Position | null>(null);
   const [lassoEnd, setLassoEnd] = useState<Position | null>(null);
   const [lassoRect, setLassoRect] = useState<LassoRect | null>(null);
+
+  // Alignment guides state
+  const [alignmentGuides, setAlignmentGuides] = useState<AlignmentGuide[]>([]);
 
   // Clear selection when clicking on stage background (modified)
   const handleStageClick = useCallback(
@@ -214,10 +229,269 @@ export function useStageState({
       setDraggedItem(itemId);
       setIsDragging(true);
 
+      // Clear any existing alignment guides
+      setAlignmentGuides([]);
+
       // Prevent text selection during drag
       e.preventDefault();
     },
     [document.items, handleItemSelect, selectedItems]
+  );
+
+  // Helper function to detect alignment between items
+  const detectAlignments = useCallback(
+    (draggedItems: Set<string>, newPositions: SelectedItemsPositions) => {
+      if (!draggedItem) return [];
+
+      // Threshold for approximate alignment (in pixels)
+      const alignmentThreshold = 5;
+      const guides: AlignmentGuide[] = [];
+
+      // Get the static (non-dragged) items
+      const staticItems = document.items.filter(
+        (item) => !draggedItems.has(item.id)
+      );
+      if (staticItems.length === 0) return [];
+
+      // Get the dragged items with their current positions
+      const movingItems = Array.from(draggedItems)
+        .map((id) => {
+          const item = document.items.find((item) => item.id === id);
+          const position = newPositions[id] || item?.position;
+          return { item, position };
+        })
+        .filter(({ item, position }) => item && position) as {
+        item: StageItemType;
+        position: Position;
+      }[];
+
+      // Iterate through each dragged item
+      movingItems.forEach(({ item: draggedItem, position: dragPos }) => {
+        const draggedLeft = dragPos.x;
+        const draggedRight = dragPos.x + (draggedItem.width || 0);
+        const draggedCenter = dragPos.x + (draggedItem.width || 0) / 2;
+        const draggedTop = dragPos.y;
+        const draggedBottom = dragPos.y + (draggedItem.height || 0);
+        const draggedMiddle = dragPos.y + (draggedItem.height || 0) / 2;
+
+        // For each static item, check for alignments
+        staticItems.forEach((staticItem) => {
+          // Skip self
+          if (staticItem.id === draggedItem.id) return;
+
+          const staticLeft = staticItem.position.x;
+          const staticRight = staticItem.position.x + (staticItem.width || 0);
+          const staticCenter =
+            staticItem.position.x + (staticItem.width || 0) / 2;
+          const staticTop = staticItem.position.y;
+          const staticBottom = staticItem.position.y + (staticItem.height || 0);
+          const staticMiddle =
+            staticItem.position.y + (staticItem.height || 0) / 2;
+
+          // Check for vertical alignments (left, center, right)
+          if (Math.abs(draggedLeft - staticLeft) < alignmentThreshold) {
+            guides.push({
+              orientation: "vertical",
+              position: staticLeft,
+              start: Math.min(draggedTop, staticTop),
+              end: Math.max(draggedBottom, staticBottom),
+            });
+          }
+
+          if (Math.abs(draggedRight - staticRight) < alignmentThreshold) {
+            guides.push({
+              orientation: "vertical",
+              position: staticRight,
+              start: Math.min(draggedTop, staticTop),
+              end: Math.max(draggedBottom, staticBottom),
+            });
+          }
+
+          if (Math.abs(draggedCenter - staticCenter) < alignmentThreshold) {
+            guides.push({
+              orientation: "vertical",
+              position: staticCenter,
+              start: Math.min(draggedTop, staticTop),
+              end: Math.max(draggedBottom, staticBottom),
+            });
+          }
+
+          if (Math.abs(draggedLeft - staticRight) < alignmentThreshold) {
+            guides.push({
+              orientation: "vertical",
+              position: staticRight,
+              start: Math.min(draggedTop, staticTop),
+              end: Math.max(draggedBottom, staticBottom),
+            });
+          }
+
+          if (Math.abs(draggedRight - staticLeft) < alignmentThreshold) {
+            guides.push({
+              orientation: "vertical",
+              position: staticLeft,
+              start: Math.min(draggedTop, staticTop),
+              end: Math.max(draggedBottom, staticBottom),
+            });
+          }
+
+          // Check for horizontal alignments (top, middle, bottom)
+          if (Math.abs(draggedTop - staticTop) < alignmentThreshold) {
+            guides.push({
+              orientation: "horizontal",
+              position: staticTop,
+              start: Math.min(draggedLeft, staticLeft),
+              end: Math.max(draggedRight, staticRight),
+            });
+          }
+
+          if (Math.abs(draggedBottom - staticBottom) < alignmentThreshold) {
+            guides.push({
+              orientation: "horizontal",
+              position: staticBottom,
+              start: Math.min(draggedLeft, staticLeft),
+              end: Math.max(draggedRight, staticRight),
+            });
+          }
+
+          if (Math.abs(draggedMiddle - staticMiddle) < alignmentThreshold) {
+            guides.push({
+              orientation: "horizontal",
+              position: staticMiddle,
+              start: Math.min(draggedLeft, staticLeft),
+              end: Math.max(draggedRight, staticRight),
+            });
+          }
+
+          if (Math.abs(draggedTop - staticBottom) < alignmentThreshold) {
+            guides.push({
+              orientation: "horizontal",
+              position: staticBottom,
+              start: Math.min(draggedLeft, staticLeft),
+              end: Math.max(draggedRight, staticRight),
+            });
+          }
+
+          if (Math.abs(draggedBottom - staticTop) < alignmentThreshold) {
+            guides.push({
+              orientation: "horizontal",
+              position: staticTop,
+              start: Math.min(draggedLeft, staticLeft),
+              end: Math.max(draggedRight, staticRight),
+            });
+          }
+        });
+      });
+
+      return guides;
+    },
+    [document.items, draggedItem]
+  );
+
+  // Helper function to apply snapping based on alignment guides
+  const applyAlignmentSnapping = useCallback(
+    (
+      draggedIds: Set<string>,
+      positions: SelectedItemsPositions,
+      guides: AlignmentGuide[]
+    ) => {
+      if (guides.length === 0 || !draggedItem) return positions;
+
+      const snappedPositions = { ...positions };
+
+      // Get main dragged item info
+      const mainItem = document.items.find((item) => item.id === draggedItem);
+      if (!mainItem) return positions;
+
+      const mainPosition = positions[draggedItem] || mainItem.position;
+
+      // For each guide, calculate the offset to apply
+      let xOffset = 0;
+      let yOffset = 0;
+
+      // Process vertical guides (affecting x position)
+      const verticalGuides = guides.filter((g) => g.orientation === "vertical");
+      if (verticalGuides.length > 0) {
+        // Get the first guide to snap to (could be improved to find the closest one)
+        const guide = verticalGuides[0];
+
+        // Calculate the main item's edges
+        const mainLeft = mainPosition.x;
+        const mainRight = mainLeft + (mainItem.width || 0);
+        const mainCenter = mainLeft + (mainItem.width || 0) / 2;
+
+        // Determine which edge to snap
+        if (
+          Math.abs(guide.position - mainLeft) <
+            Math.abs(guide.position - mainCenter) &&
+          Math.abs(guide.position - mainLeft) <
+            Math.abs(guide.position - mainRight)
+        ) {
+          // Snap left edge
+          xOffset = guide.position - mainLeft;
+        } else if (
+          Math.abs(guide.position - mainRight) <
+            Math.abs(guide.position - mainCenter) &&
+          Math.abs(guide.position - mainRight) <
+            Math.abs(guide.position - mainLeft)
+        ) {
+          // Snap right edge
+          xOffset = guide.position - mainRight;
+        } else {
+          // Snap center
+          xOffset = guide.position - mainCenter;
+        }
+      }
+
+      // Process horizontal guides (affecting y position)
+      const horizontalGuides = guides.filter(
+        (g) => g.orientation === "horizontal"
+      );
+      if (horizontalGuides.length > 0) {
+        // Get the first guide to snap to
+        const guide = horizontalGuides[0];
+
+        // Calculate the main item's edges
+        const mainTop = mainPosition.y;
+        const mainBottom = mainTop + (mainItem.height || 0);
+        const mainMiddle = mainTop + (mainItem.height || 0) / 2;
+
+        // Determine which edge to snap
+        if (
+          Math.abs(guide.position - mainTop) <
+            Math.abs(guide.position - mainMiddle) &&
+          Math.abs(guide.position - mainTop) <
+            Math.abs(guide.position - mainBottom)
+        ) {
+          // Snap top edge
+          yOffset = guide.position - mainTop;
+        } else if (
+          Math.abs(guide.position - mainBottom) <
+            Math.abs(guide.position - mainMiddle) &&
+          Math.abs(guide.position - mainBottom) <
+            Math.abs(guide.position - mainTop)
+        ) {
+          // Snap bottom edge
+          yOffset = guide.position - mainBottom;
+        } else {
+          // Snap middle
+          yOffset = guide.position - mainMiddle;
+        }
+      }
+
+      // Apply the offsets to all dragged items
+      Array.from(draggedIds).forEach((id) => {
+        const pos = snappedPositions[id];
+        if (pos) {
+          snappedPositions[id] = {
+            x: pos.x + xOffset,
+            y: pos.y + yOffset,
+          };
+        }
+      });
+
+      return snappedPositions;
+    },
+    [document.items, draggedItem]
   );
 
   const handleOverlayMouseMove = useCallback(
@@ -414,7 +688,20 @@ export function useStageState({
         }
       });
 
-      setSelectedItemsPositions(newPositions);
+      // Detect alignment with other items and show guides
+      const guides = detectAlignments(selectedItems, newPositions);
+
+      // Apply alignment snapping if there are guides
+      const snappedPositions =
+        guides.length > 0
+          ? applyAlignmentSnapping(selectedItems, newPositions, guides)
+          : newPositions;
+
+      // Update alignment guides for visual display
+      setAlignmentGuides(guides);
+
+      // Update item positions with snapped values
+      setSelectedItemsPositions(snappedPositions);
     },
     [
       document.items,
@@ -427,6 +714,8 @@ export function useStageState({
       selectedItemsPositions,
       snapToGrid,
       stageRect,
+      detectAlignments,
+      applyAlignmentSnapping,
     ]
   );
 
@@ -446,6 +735,9 @@ export function useStageState({
     setStageRect(null);
     setInitialItemPositions({});
     setSelectedItemsPositions({});
+
+    // Clear alignment guides
+    setAlignmentGuides([]);
   }, [documentService, isDragging, selectedItemsPositions]);
 
   // Delete an item
@@ -667,6 +959,7 @@ export function useStageState({
     lassoStart,
     lassoEnd,
     lassoRect,
+    alignmentGuides,
   };
 
   const actions: StageStateActions = {

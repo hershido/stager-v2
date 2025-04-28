@@ -72,7 +72,7 @@ export function KeyboardProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       console.log(
-        `KeyboardContext: key pressed: ${e.key}, ctrlKey: ${e.ctrlKey}, metaKey: ${e.metaKey}`
+        `KeyboardContext: key pressed: ${e.key}, code=${e.code}, ctrlKey: ${e.ctrlKey}, metaKey: ${e.metaKey}, altKey: ${e.altKey}`
       );
 
       if (isPaused) {
@@ -121,22 +121,39 @@ export function KeyboardProvider({ children }: { children: React.ReactNode }) {
         console.log(
           `KeyboardContext: executing shortcut handler for "${topShortcut.key}"`
         );
-        topShortcut.handler(e);
+
+        try {
+          topShortcut.handler(e);
+          console.log(
+            `KeyboardContext: shortcut handler executed successfully for "${topShortcut.key}"`
+          );
+        } catch (error) {
+          console.error(
+            `Error executing shortcut handler for "${topShortcut.key}":`,
+            error
+          );
+        }
 
         // Prevent default browser behavior
         e.preventDefault();
       }
     };
 
-    // Attach the event listener to the document instead of window
-    // This ensures it captures events even when the focus is within an iframe or other complex elements
-    document.addEventListener("keydown", handleKeyDown, false);
+    console.log("KeyboardContext: setting up global keyboard event listener");
+
+    // Attach the event listener to document with capture phase to ensure we get it first
+    document.addEventListener("keydown", handleKeyDown, true);
 
     console.log("KeyboardContext: global keyboard event listener attached");
 
+    // Log currently registered shortcuts
+    console.log(
+      `Current shortcuts: ${shortcuts.map((s) => `"${s.key}"`).join(", ")}`
+    );
+
     // Cleanup
     return () => {
-      document.removeEventListener("keydown", handleKeyDown, false);
+      document.removeEventListener("keydown", handleKeyDown, true);
       console.log("KeyboardContext: global keyboard event listener removed");
     };
   }, [shortcuts, isPaused]);
@@ -145,6 +162,11 @@ export function KeyboardProvider({ children }: { children: React.ReactNode }) {
   const getKeyString = (e: KeyboardEvent): string => {
     const parts = [];
 
+    // Add debug log to see raw event details
+    console.log(
+      `Raw key event: key=${e.key}, code=${e.code}, altKey=${e.altKey}, ctrlKey=${e.ctrlKey}, metaKey=${e.metaKey}, shiftKey=${e.shiftKey}`
+    );
+
     // Check if we have modifier keys
     const hasModifiers = e.ctrlKey || e.metaKey || e.altKey || e.shiftKey;
 
@@ -152,11 +174,26 @@ export function KeyboardProvider({ children }: { children: React.ReactNode }) {
     // This allows both Ctrl+C on Windows and Cmd+C on Mac to be the same shortcut
     if (e.ctrlKey || e.metaKey) parts.push("ctrl");
 
+    // Make sure we detect the alt key (Option on Mac)
     if (e.altKey) parts.push("alt");
     if (e.shiftKey) parts.push("shift");
 
     // Handle special keys
     let key = e.key.toLowerCase();
+
+    // Handle special case for keys with alt pressed on Mac
+    // On macOS, pressing Option+key often produces special characters
+    if (e.altKey && e.key.length === 1) {
+      // If the key with alt is a single character, get the original key from e.code
+      // e.g., Alt+A might produce å, but we want "alt+a"
+      const match = e.code.match(/^Key([A-Z])$/);
+      if (match) {
+        key = match[1].toLowerCase();
+        console.log(
+          `Alt key detected: mapping ${e.key} to ${key} based on keyCode ${e.code}`
+        );
+      }
+    }
 
     // Map special keys to consistent names
     const keyMap: Record<string, string> = {
@@ -182,9 +219,12 @@ export function KeyboardProvider({ children }: { children: React.ReactNode }) {
     // This is important for shortcuts like "g" or "s" that are single keys
     if (hasModifiers) {
       parts.push(key);
-      return parts.join("+");
+      const result = parts.join("+");
+      console.log(`Mapped shortcut: "${result}"`);
+      return result;
     } else {
       // For single-key shortcuts (no modifiers), just return the key
+      console.log(`Single key shortcut: "${key}"`);
       return key;
     }
   };
@@ -226,7 +266,20 @@ export function useShortcut(
       return;
     }
 
-    const id = Math.random().toString(36).substring(2, 10);
+    // Generate a more stable ID based on the key and a hash of the dependency array values
+    // This ensures the same shortcut doesn't get registered multiple times
+    const generateStableId = () => {
+      // Create a simple hash from the key
+      const keyHash = key
+        .split("")
+        .reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      // Add a random suffix to avoid collisions but keep it stable within this effect
+      return `${key.replace(/[^a-z0-9]/gi, "_")}_${keyHash}_${Math.random()
+        .toString(36)
+        .substring(2, 6)}`;
+    };
+
+    const id = generateStableId();
     console.log(`useShortcut: registering shortcut '${key}' with id ${id}`);
 
     registerShortcut({
@@ -241,5 +294,5 @@ export function useShortcut(
       console.log(`useShortcut: unregistering shortcut '${key}' with id ${id}`);
       unregisterShortcut(id);
     };
-  }, [...deps, options.disabled]);
+  }, [...deps, options.disabled, key]); // Also depend on the key itself
 }

@@ -182,6 +182,7 @@ describe("Stage", () => {
     lassoStart: null,
     lassoEnd: null,
     lassoRect: null,
+    alignmentGuides: [],
   };
 
   // Mock lasso functions

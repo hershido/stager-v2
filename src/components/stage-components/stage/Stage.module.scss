@@ -61,6 +61,15 @@
   z-index: 100;
 }
 
+.alignmentGuide {
+  position: absolute;
+  background-color: #2196f3; /* Blue color for guides */
+  pointer-events: none; /* Allow clicks to pass through */
+  z-index: 100;
+  opacity: 0.7;
+  box-shadow: 0 0 1px 1px rgba(255, 255, 255, 0.5); /* Gives a slight glow */
+}
+
 .contextMenuTitle {
   font-size: 14px;
   font-weight: 500;

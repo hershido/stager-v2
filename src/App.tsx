@@ -1,8 +1,39 @@
 import { useEffect } from "react";
 import { AppLayout } from "./components/layout/AppLayout";
-import { KeyboardProvider } from "./contexts/KeyboardContext";
+import { KeyboardProvider, useShortcut } from "./contexts/KeyboardContext";
 import { StageContainer } from "./components/stage-components/container/StageContainer";
 import "./App.scss";
+
+// Test component to validate shortcuts
+function ShortcutTestComponent() {
+  console.log("ShortcutTestComponent rendered");
+
+  // Register a test shortcut - just "t" key
+  useShortcut(
+    "t",
+    (e) => {
+      console.log("TEST SHORTCUT TRIGGERED - T key pressed!");
+      e.preventDefault();
+      alert("T key shortcut works!");
+    },
+    [],
+    { priority: 100 }
+  );
+
+  // Also test alt key combination
+  useShortcut(
+    "alt+t",
+    (e) => {
+      console.log("TEST SHORTCUT TRIGGERED - Alt+T key pressed!");
+      e.preventDefault();
+      alert("Alt+T shortcut works!");
+    },
+    [],
+    { priority: 100 }
+  );
+
+  return null; // This is just a functionality component, no UI
+}
 
 function App() {
   // Debug the App component and keyboard events
@@ -11,7 +42,9 @@ function App() {
 
     // Debug listener to check if events reach the document level
     const debugKeyDown = (e: KeyboardEvent) => {
-      console.log(`App debug: Key pressed at document level: ${e.key}`);
+      console.log(
+        `App debug: Key pressed at document level: ${e.key} (code: ${e.code}), alt: ${e.altKey}`
+      );
     };
 
     document.addEventListener("keydown", debugKeyDown);
@@ -22,22 +55,9 @@ function App() {
     };
   }, []);
 
-  // Add a custom wrapper for the KeyboardProvider to debug its initialization
-  const DebugKeyboardProvider = ({
-    children,
-  }: {
-    children: React.ReactNode;
-  }) => {
-    useEffect(() => {
-      console.log("KeyboardProvider mounted and initialized");
-      return () => console.log("KeyboardProvider unmounted");
-    }, []);
-
-    return <KeyboardProvider>{children}</KeyboardProvider>;
-  };
-
   return (
-    <DebugKeyboardProvider>
+    <KeyboardProvider>
+      <ShortcutTestComponent />
       <AppLayout
         header={
           <div style={{ padding: "20px", height: "100%" }}>
@@ -58,7 +78,7 @@ function App() {
           </div>
         }
       />
-    </DebugKeyboardProvider>
+    </KeyboardProvider>
   );
 }
 

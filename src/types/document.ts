@@ -113,8 +113,8 @@ export function createInitialDocument(): StagerDocument {
     version: "1.0",
 
     stage: {
-      width: 1200,
-      height: 800,
+      width: 1000,
+      height: 600,
       backgroundColor: "#f5f5f5",
       gridSize: 20,
     },
